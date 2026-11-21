@@ -37,6 +37,22 @@ class ArchiveNotFound(RuntimeError):
     """The archive for a date does not exist (HTTP 404/403)."""
 
 
+class ArchiveRateLimited(RuntimeError):
+    """TCGCSV answered HTTP 429. Never retried here; the caller must back off."""
+
+    def __init__(self, message, retry_after=None):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+def _retry_after_seconds(response):
+    value = response.headers.get("Retry-After") if response.headers else None
+    try:
+        return max(0.0, float(value)) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 def current_utc_date():
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
@@ -150,7 +166,7 @@ def check_7z_available():
 
 
 def download_archive(target_date_str, dest_path):
-    """Download exactly one fixed-date archive, without retrying HTTP 401/403/404."""
+    """Download exactly one fixed-date archive, without retrying HTTP 401/403/404/429."""
     url = ARCHIVE_URL_TEMPLATE.format(date=target_date_str)
     print(f"Downloading daily archive from: {url}")
     last_error = None
@@ -168,9 +184,11 @@ def download_archive(target_date_str, dest_path):
             last_error = f"HTTP {response.status_code}"
             if response.status_code in (403, 404):
                 raise ArchiveNotFound(f"No archive for {target_date_str}: {last_error}")
-            if response.status_code == 401:
-                break
-            if response.status_code != 429 and response.status_code < 500:
+            if response.status_code == 429:
+                raise ArchiveRateLimited(
+                    f"Rate limited downloading {target_date_str}: {last_error}",
+                    _retry_after_seconds(response))
+            if response.status_code < 500:
                 break
         except requests.exceptions.RequestException as error:
             last_error = str(error)

@@ -262,6 +262,15 @@ class ArchiveParseTests(unittest.TestCase):
             (Path(tmp) / "2026-11-19" / "3" / "1494").mkdir(parents=True)
             self.assertTrue(fetch_prices.find_category_dir(tmp).endswith("2026-11-19/3"))
 
+    def test_429_raises_rate_limited_without_retry(self):
+        response = Mock(status_code=429, headers={"Retry-After": "30"})
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.object(fetch_prices.requests, "get", return_value=response) as get:
+            with self.assertRaises(fetch_prices.ArchiveRateLimited) as ctx:
+                fetch_prices.download_archive("2025-01-01", str(Path(tmp) / "a.7z"))
+        self.assertEqual(get.call_count, 1)
+        self.assertEqual(ctx.exception.retry_after, 30.0)
+
     def test_404_raises_archive_not_found_without_retry(self):
         with tempfile.TemporaryDirectory() as tmp, \
                 patch.object(fetch_prices.requests, "get", return_value=Mock(status_code=404)) as get:

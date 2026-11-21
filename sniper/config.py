@@ -41,7 +41,15 @@ BACKFILL_FLOOR_RATIO = 0.85
 
 # --- Backfill --------------------------------------------------------------
 BACKFILL_START_DATE = "2024-02-08"  # first date TCGCSV's FAQ documents
-ARCHIVE_DOWNLOAD_INTERVAL = 3.0  # seconds between archive downloads
+# Seconds between archive downloads. 3s triggered HTTP 429 after ~66
+# downloads on 2026-11-20, so this is deliberately slow (~3 h for 1,000 days).
+ARCHIVE_DOWNLOAD_INTERVAL = 10.0
+# On HTTP 429: wait Retry-After if given, else back off from the first value,
+# doubling up to the cap, then retry the same date. Stop the run after this
+# many rate limits in a row.
+RATE_LIMIT_BACKOFF_START = 120.0
+RATE_LIMIT_BACKOFF_MAX = 1800.0
+RATE_LIMIT_MAX_CONSECUTIVE = 6
 # A 404 for a date older than this many days is recorded as missing and not
 # re-requested unless --retry-missing is passed. Newer dates may simply not
 # be published yet.

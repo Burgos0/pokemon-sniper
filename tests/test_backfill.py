@@ -125,6 +125,33 @@ class BackfillRunTests(unittest.TestCase):
                 self.run_range("2025-01-01", "2025-01-01", downloader)
         self.assertFalse(os.path.exists(backfill.archive_path(self.cache, "2025-01-01")))
 
+    def test_rate_limit_backs_off_and_retries_same_date(self):
+        waits = []
+        calls = []
+
+        def download(date_str, part):
+            calls.append(date_str)
+            if len(calls) <= 2:
+                raise fetch_prices.ArchiveRateLimited("429", retry_after=None if len(calls) == 1 else 7)
+            Path(part).write_text("ok")
+
+        downloader = backfill.Downloader(interval=0, backoff_start=120, sleep=waits.append)
+        with patch.object(fetch_prices, "download_archive", side_effect=download):
+            self.run_range("2025-01-01", "2025-01-01", downloader)
+        self.assertEqual(calls, ["2025-01-01"] * 3)
+        self.assertEqual(waits, [120, 7])  # backoff first, then the server's Retry-After
+        self.assertEqual(self.statuses(), {"2025-01-01": "ok"})
+
+    def test_persistent_rate_limit_stops_run_without_marking_dates(self):
+        def download(date_str, part):
+            raise fetch_prices.ArchiveRateLimited("429")
+
+        downloader = backfill.Downloader(interval=0, max_consecutive=3, sleep=lambda s: None)
+        with patch.object(fetch_prices, "download_archive", side_effect=download) as dl:
+            self.run_range("2025-01-01", "2025-01-05", downloader)
+        self.assertEqual(dl.call_count, 3)  # stopped at the first date, did not hammer the rest
+        self.assertEqual(self.statuses(), {})
+
     def test_report_lists_gaps_and_metadata_coverage(self):
         self.run_range("2025-01-01", "2025-01-03", FakeDownloader(missing={"2025-01-02"}))
         with db.init_db(self.db_path) as conn:

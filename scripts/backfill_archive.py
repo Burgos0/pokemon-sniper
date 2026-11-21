@@ -65,26 +65,54 @@ def missing_marker(cache_dir, date_str):
     return os.path.join(cache_dir, f"prices-{date_str}.missing")
 
 
-class Downloader:
-    """Downloads at most one archive per ARCHIVE_DOWNLOAD_INTERVAL seconds."""
+class RateLimitExhausted(RuntimeError):
+    """Too many HTTP 429s in a row; the run stops and can be resumed later."""
 
-    def __init__(self, interval=config.ARCHIVE_DOWNLOAD_INTERVAL):
+
+class Downloader:
+    """Downloads at most one archive per ARCHIVE_DOWNLOAD_INTERVAL seconds,
+    backing off (and retrying the same date) whenever TCGCSV answers 429."""
+
+    def __init__(self, interval=config.ARCHIVE_DOWNLOAD_INTERVAL,
+                 backoff_start=config.RATE_LIMIT_BACKOFF_START,
+                 backoff_max=config.RATE_LIMIT_BACKOFF_MAX,
+                 max_consecutive=config.RATE_LIMIT_MAX_CONSECUTIVE, sleep=time.sleep):
         self.interval = interval
+        self.backoff_start = backoff_start
+        self.backoff_max = backoff_max
+        self.max_consecutive = max_consecutive
+        self.sleep = sleep
         self.last = None
         self.count = 0
 
-    def fetch(self, date_str, dest):
+    def _pace(self):
         if self.last is not None:
             wait = self.interval - (time.monotonic() - self.last)
             if wait > 0:
-                time.sleep(wait)
+                self.sleep(wait)
+
+    def fetch(self, date_str, dest):
         part = dest + ".part"
-        try:
-            fetch_prices.download_archive(date_str, part)
-        finally:
-            self.last = time.monotonic()
-        os.replace(part, dest)
-        self.count += 1
+        backoff = self.backoff_start
+        for attempt in range(1, self.max_consecutive + 1):
+            self._pace()
+            try:
+                fetch_prices.download_archive(date_str, part)
+            except fetch_prices.ArchiveRateLimited as error:
+                self.last = time.monotonic()
+                if attempt == self.max_consecutive:
+                    raise RateLimitExhausted(
+                        f"{attempt} rate limits in a row at {date_str}") from error
+                wait = error.retry_after if error.retry_after is not None else backoff
+                print(f"  {date_str}: rate limited; waiting {wait:.0f}s before retrying")
+                self.sleep(wait)
+                backoff = min(backoff * 2, self.backoff_max)
+                continue
+            finally:
+                self.last = time.monotonic()
+            os.replace(part, dest)
+            self.count += 1
+            return
 
 
 def ensure_archive(date_str, cache_dir, downloader, today, retry_missing=False):
@@ -145,6 +173,9 @@ def run_backfill(db_path, cache_dir, start, end, retry_missing=False, max_downlo
             break
         try:
             path = ensure_archive(date_str, cache_dir, downloader, today, retry_missing)
+        except RateLimitExhausted as error:
+            print(f"{date_str}: {error}; stopping. Re-run later to resume.")
+            break
         except Exception as error:
             consecutive_errors += 1
             print(f"{date_str}: download error: {error}")
