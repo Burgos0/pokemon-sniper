@@ -27,9 +27,9 @@ STORE_MIN_MARKET_PRICE = 5.00
 
 # --- Daily row-count floors ------------------------------------------------
 # Validated against ALL category-3 rows in the source (before the storage
-# floor). PROVISIONAL (85% of the 2026-11-19 archive's 45,793); replace with
-# 85% of the first live fetch's count.
-MIN_EXPECTED_DAILY_ROWS = 38_900
+# floor). The first live fetch (observation date 2026-11-21 UTC) returned
+# 45,809 rows across 222 sets; this is 85% of that.
+MIN_EXPECTED_DAILY_ROWS = 38_937
 # Backfill uses a date-aware floor: 85% of the expected count, linearly
 # interpolated between these observed archive counts.
 BACKFILL_ROW_ANCHORS = (
