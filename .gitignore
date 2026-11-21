@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.venv/
+
+# Databases are persisted via verified GitHub Release snapshots, not
+# ordinary commits (see scripts/snapshot_storage.py).
+data/*.db
+data/*.db.bak.*
+data/backfill_report.json
+
+# Every downloaded TCGCSV archive is kept here and never re-downloaded.
+data/archive_cache/
+
+# Built static site (generated in CI)
+site/
+data/*.log

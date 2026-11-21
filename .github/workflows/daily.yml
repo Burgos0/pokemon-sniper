@@ -1,0 +1,52 @@
+name: pokemon sniper daily
+
+on:
+  # The daily schedule is enabled at milestone 7, once the trading step and
+  # dashboard exist. Until then this runs only when triggered by hand.
+  # schedule:
+  #   - cron: "0 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Serialize runs so two overlapping triggers can never race to restore or
+# publish the DB snapshot at the same time. Queue rather than cancel.
+concurrency:
+  group: pokemon-sniper-daily
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: install python packages
+        run: |
+          pip install -r requirements.txt
+
+      - name: restore latest database snapshot
+        id: restore_snapshot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m scripts.restore_snapshot
+
+      - name: fetch pokemon prices
+        id: fetch
+        run: |
+          python -m scripts.fetch_prices
+
+      - name: publish database snapshot
+        id: publish_snapshot
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m scripts.publish_snapshot --source-commit "${{ github.sha }}"
