@@ -14,3 +14,4 @@ data/archive_cache/
 # Built static site (generated in CI)
 site/
 data/*.log
+data/backtest_report*

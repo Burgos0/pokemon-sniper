@@ -67,3 +67,77 @@ FLOOR_RISE_MIN = 1.15             # cheapest listing must rise >=15%...
 FLOOR_SUPPORT_RATIO = 0.80        # ...or already sit within 20% of the new market price
 MIN_PRICE_CHANGES = 2             # market price must move on 2+ separate days (not one sale)
 MAX_LISTING_TO_MARKET = 2.0       # cheapest listing > 2x market = thin market, price is stale/erratic
+
+# --- Paper trading (milestone 4) -------------------------------------------
+SNIPER_DB_PATH = "data/sniper.db"      # live ledger
+BACKTEST_DB_PATH = "data/backtest.db"  # backtest ledgers; never the live one
+STARTING_BANKROLL = 1000.00
+MAX_POSITION_FRACTION = 0.20  # of the starting bankroll per position ($200)
+MAX_OPEN_POSITIONS = 10
+# One copy per card. A "card" is a (product_id, printing) identity, the same
+# identity used everywhere else, so a Holofoil and a Reverse Holofoil of one
+# product are two cards.
+
+# --- Calendar windows ------------------------------------------------------
+# A window of N calendar days is valid only if prices exist on at least this
+# share of its days (rounded up). A rule with an invalid window does not fire.
+WINDOW_MIN_COVERAGE = 0.80
+# Valuation only (open positions and benchmark): carry the last price forward
+# up to this many days. Beyond that a holding is valued at $0, since prices
+# under the $5 storage floor are not stored.
+VALUATION_CARRY_DAYS = 7
+
+# --- Universe --------------------------------------------------------------
+UNIVERSE_MIN_PRICE = 20.00
+UNIVERSE_MAX_PRICE = 200.00
+UNIVERSE_MIN_SET_AGE_DAYS = 90
+UNIVERSE_RECENT_DAYS = 12        # priced on at least...
+UNIVERSE_RECENT_MIN_PRICED = 9   # ...9 of the last 12 days (the owner's rule, not 80%)
+UNIVERSE_CHANGE_DAYS = 30        # market price changed on at least...
+UNIVERSE_MIN_CHANGES = 2         # ...2 days in the last 30
+
+# --- Rule A: floor squeeze -------------------------------------------------
+A_CONSECUTIVE_DAYS = 2   # low_price >= market_price on this many days in a row
+A_STABLE_DAYS = 7        # and the market price moved less than...
+A_MAX_MOVE = 0.10        # ...10% over the last 7 days
+
+# --- Rule B: sealed lead ---------------------------------------------------
+B_BOX_LOOKBACK_DAYS = 30
+B_BOX_MIN_RISE = 0.10
+B_TOP_SINGLES = 5
+B_MEDIAN_DAYS = 3          # 3-day median of the single...
+B_MEDIAN_OFFSET_DAYS = 7   # ...above its 3-day median from 7 days earlier
+# Box choice per set: sealed products with live metadata whose name contains
+# the first phrase and none of the exclusions; else the fallback. Shortest
+# name wins (so "X Booster Box" beats "X Half Booster Box"), then lowest
+# product_id. "Code Card" products are digital codes, not boxes.
+B_BOX_NAME = "Booster Box"
+B_BOX_EXCLUDE = ("Case", "Code Card")
+B_FALLBACK_NAME = "Elite Trainer Box"
+B_FALLBACK_EXCLUDE = ("Pokemon Center", "Pokémon Center", "Code Card")
+
+# --- Rule C: bottoming -----------------------------------------------------
+C_HIGH_DAYS = 60          # market price is >= 20% below its 60-day high...
+C_MIN_DRAWDOWN = 0.20
+C_FLAT_DAYS = 14          # ...stayed within +/-5% of its median for 14 days...
+C_FLAT_BAND = 0.05
+C_RISE_DAYS = 3           # ...then rose >= 5% over the next 3 days
+C_MIN_RISE = 0.05
+
+# When signals exceed cash or slots: A, then B, then C, then higher price.
+RULE_PRIORITY = ("A", "B", "C")
+
+# --- Exits -----------------------------------------------------------------
+TAKE_PROFIT = 0.40
+TRAIL_ACTIVATE = 0.20   # once the peak is +20% over the buy price...
+TRAIL_DROP = 0.15       # ...sell if the price falls 15% from the peak
+HARD_STOP = -0.20
+TIME_STOP_DAYS = 90
+
+# --- Benchmark -------------------------------------------------------------
+BENCHMARK_SIZE = 20  # equal-weight, fractional shares, never traded
+
+# --- Backtest (milestone 5) ------------------------------------------------
+# Trading starts this many days into the price history, so the longest rule
+# window (60 days) can be valid on the first trading day.
+BACKTEST_WARMUP_DAYS = 60
