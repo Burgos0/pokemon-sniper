@@ -4,6 +4,10 @@
 CATEGORY_ID = 3  # Pokémon (English) on TCGplayer/TCGCSV
 BASE_API = "https://tcgcsv.com/tcgplayer"
 ARCHIVE_URL_TEMPLATE = "https://tcgcsv.com/archive/tcgplayer/prices-{date}.ppmd.7z"
+# When TCGCSV last refreshed its data (one ISO timestamp, ~20:00 UTC daily).
+# Live fetches are dated by this, not by the clock: a fetch at 04:02 UTC on
+# 2026-11-21 returned exactly the 2026-11-20 archive's prices.
+LAST_UPDATED_URL = "https://tcgcsv.com/last-updated.txt"
 USER_AGENT = "PokemonSniper/1.0 (paper-trading bot; github.com/Burgos0/pokemon-sniper)"
 REQUEST_TIMEOUT = 30
 MAX_RETRIES = 3

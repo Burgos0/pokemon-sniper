@@ -20,6 +20,7 @@ from sniper.config import (
     ARCHIVE_URL_TEMPLATE,
     BASE_API,
     CATEGORY_ID,
+    LAST_UPDATED_URL,
     MAX_REQUEST_DELAY,
     MAX_RETRIES,
     RATE_LIMIT_RETRY_DELAY,
@@ -53,8 +54,13 @@ def _retry_after_seconds(response):
         return None
 
 
-def current_utc_date():
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+def tcgcsv_data_date(last_updated):
+    """
+    The date a live fetch's prices belong to. TCGCSV's archive for date D holds
+    the refresh it published on D (UTC), so a fetch is dated by that refresh,
+    not by when it ran.
+    """
+    return last_updated.astimezone(timezone.utc).strftime("%Y-%m-%d")
 
 
 def parse_target_date(date_arg=None):
@@ -69,15 +75,13 @@ def parse_target_date(date_arg=None):
     return (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
 
 
-def parse_observation_date(date_arg=None):
-    """Capture the live observation date once, at the beginning of a run."""
-    if date_arg:
-        try:
-            return datetime.strptime(date_arg, "%Y-%m-%d").date().strftime("%Y-%m-%d")
-        except ValueError:
-            print(f"ERROR: Invalid date format '{date_arg}'. Expected YYYY-MM-DD.")
-            sys.exit(1)
-    return current_utc_date()
+def parse_observation_date(date_arg):
+    """Validate an explicit YYYY-MM-DD observation date."""
+    try:
+        return datetime.strptime(date_arg, "%Y-%m-%d").date().strftime("%Y-%m-%d")
+    except ValueError:
+        print(f"ERROR: Invalid date format '{date_arg}'. Expected YYYY-MM-DD.")
+        sys.exit(1)
 
 
 class TCGCSVClient:
@@ -153,6 +157,19 @@ class TCGCSVClient:
                 raise RuntimeError(f"Unexpected prices response for group {group_id}")
             self._group_price_cache[group_id] = data
         return self._group_price_cache[group_id]
+
+
+def fetch_last_updated(client=None):
+    """Return TCGCSV's last-updated timestamp as an aware datetime."""
+    client = client or TCGCSVClient()
+    client._pace()
+    response = client.session.get(LAST_UPDATED_URL, timeout=REQUEST_TIMEOUT)
+    if response.status_code != 200:
+        raise RuntimeError(f"Failed to fetch {LAST_UPDATED_URL}: HTTP {response.status_code}")
+    try:
+        return datetime.strptime(response.text.strip(), "%Y-%m-%dT%H:%M:%S%z")
+    except ValueError:
+        raise RuntimeError(f"Unexpected last-updated value: {response.text[:80]!r}")
 
 
 def fetch_json(url, client=None):
@@ -309,14 +326,19 @@ def fetch_live_group_prices(group_ids, client=None):
 
 def main():
     start_time = time.time()
-    target_date_str = parse_observation_date(sys.argv[1] if len(sys.argv) > 1 else None)
+    date_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    if date_arg:
+        date_arg = parse_observation_date(date_arg)
     print("=" * 60)
     print("Pokémon Price Fetcher (Live API Mode)")
-    print(f"Observation Date: {target_date_str}")
     print("=" * 60)
 
     try:
         client = TCGCSVClient()
+        last_updated = fetch_last_updated(client)
+        target_date_str = date_arg or tcgcsv_data_date(last_updated)
+        print(f"TCGCSV last updated: {last_updated.isoformat()}")
+        print(f"Observation Date: {target_date_str}")
         print(f"Request delay: {client.request_delay:.2f} seconds")
         groups = fetch_groups(client)
         group_ids = [str(g["groupId"]) for g in groups if "groupId" in g]
@@ -324,6 +346,11 @@ def main():
 
         parsed_group_prices, successful_groups, failed_groups = fetch_live_group_prices(
             group_ids, client)
+        # A refresh landing mid-run would mix two days' prices under one date.
+        if fetch_last_updated(client) != last_updated:
+            print("TCGCSV refreshed its data during this run; refusing to write "
+                  "mixed prices. Re-run the fetch.")
+            return 1
         rows, rows_total, seen = db.build_price_rows(parsed_group_prices, target_date_str)
 
         print(f"Groups processed: {len(successful_groups):,}")
@@ -340,7 +367,8 @@ def main():
 
         rows_before, rows_stored = db.write_day_atomically(
             DB_PATH, target_date_str, rows, rows_total, seen, MIN_EXPECTED_DAILY_ROWS,
-            source="live", groups=len(successful_groups), failed_groups=failed_groups)
+            source="live", groups=len(successful_groups), failed_groups=failed_groups,
+            note=f"tcgcsv last-updated {last_updated.isoformat()}")
 
         # Metadata: refresh groups, and products for any group that has a
         # product we have never seen. Best effort; prices are already saved.

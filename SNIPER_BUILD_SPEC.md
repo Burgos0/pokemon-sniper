@@ -95,6 +95,11 @@ continue without waiting.
 - Archives hold prices only (IDs, no names). Card names, set names, release
   dates, rarity and `is_sealed` come from the live groups/products endpoints.
   Report how many archived product IDs have no live metadata.
+- Live fetches are dated by TCGCSV's last-updated timestamp
+  (`https://tcgcsv.com/last-updated.txt`, UTC date), not the clock. The
+  first live fetch, run at 04:02 UTC on 2026-11-21, matched the 2026-11-20
+  archive row for row, so clock dating was one day ahead. A fetch that sees
+  the timestamp change mid-run writes nothing.
 - Never use `highPrice` for anything: it has extreme outliers. It is not
   stored in the DB.
 - Storage floor (decided 2026-11-20): only price rows with
@@ -142,6 +147,8 @@ why not if skipped).
 
 A card is tradeable only if all are true:
 
+- Has live metadata (a row in `products`). Product IDs that appear only in
+  archives, with no live name, set or sealed flag, are excluded.
 - Single, not sealed
 - Market price between $20 and $200
 - Its set released ≥ 90 days ago
@@ -165,6 +172,7 @@ executes at that day's market price.
     (excluding names containing "Case"). If the set has none, fall back to
     the sealed product whose name contains "Elite Trainer Box" (excluding
     "Pokemon Center"). If neither exists, rule B skips that set.
+    Only products with live metadata are candidates (the name is needed).
   - Log which product was chosen for each set.
 - **C. Bottoming:** market price is ≥ 20% below its 60-day high, stayed within
   ±5% for 14 days, then rose ≥ 5% over 3 days.

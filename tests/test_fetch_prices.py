@@ -56,6 +56,10 @@ class CategoryTests(unittest.TestCase):
             self.assertNotIn("category_id=2", text, path)
 
 
+# TCGCSV refreshed on 2026-09-24 at 20:06 UTC.
+UPDATED_0924 = datetime(2026, 9, 24, 20, 6, 4, tzinfo=timezone.utc)
+
+
 class LiveFetchTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -70,11 +74,12 @@ class LiveFetchTests(unittest.TestCase):
     def test_explicit_target_date_remains_exact(self):
         self.assertEqual(fetch_prices.parse_target_date("2026-01-02"), "2026-01-02")
 
-    def run_main(self, min_rows=1, live=None):
+    def run_main(self, min_rows=1, live=None, last_updated=None):
         live = live or (lambda *a, **k: ({"10": PRICES}, ["10"], []))
+        stamps = last_updated or [UPDATED_0924] * 2
         with patch.object(fetch_prices, "DB_PATH", self.db_path), \
                 patch.object(fetch_prices, "MIN_EXPECTED_DAILY_ROWS", min_rows), \
-                patch.object(fetch_prices, "current_utc_date", return_value="2026-09-24"), \
+                patch.object(fetch_prices, "fetch_last_updated", side_effect=stamps), \
                 patch.object(fetch_prices, "fetch_groups", return_value=GROUPS), \
                 patch.object(fetch_prices, "fetch_group_products", return_value=PRODUCTS), \
                 patch.object(fetch_prices, "fetch_live_group_prices", side_effect=live), \
@@ -160,10 +165,36 @@ class LiveFetchTests(unittest.TestCase):
              "https://tcgcsv.com/tcgplayer/3/11/prices"],
         )
 
-    def test_observation_date_is_captured_once(self):
-        with patch.object(fetch_prices, "current_utc_date", return_value="2026-09-24") as today:
-            self.assertEqual(fetch_prices.parse_observation_date(), "2026-09-24")
-        today.assert_called_once_with()
+    def test_live_fetch_is_dated_by_tcgcsv_last_updated_not_clock(self):
+        # Run at 04:02 UTC on 09-25; TCGCSV's latest refresh is 09-24's, which is
+        # the data in the 09-24 archive, so the rows must be dated 09-24.
+        with patch.object(fetch_prices, "datetime", wraps=datetime) as clock:
+            clock.now.return_value = datetime(2026, 9, 25, 4, 2, tzinfo=timezone.utc)
+            self.assertEqual(self.run_main(), 0)
+        with sqlite3.connect(self.db_path) as conn:
+            dates = conn.execute("SELECT DISTINCT date FROM printing_prices").fetchall()
+            log = conn.execute("SELECT date, note FROM fetch_log").fetchall()
+        self.assertEqual(dates, [("2026-09-24",)])
+        self.assertEqual(log, [("2026-09-24", "tcgcsv last-updated 2026-09-24T20:06:04+00:00")])
+
+    def test_data_date_uses_utc_day_of_the_refresh(self):
+        self.assertEqual(fetch_prices.tcgcsv_data_date(UPDATED_0924), "2026-09-24")
+        # 21:00 on 09-24 in UTC-5 is 02:00 on 09-25 UTC.
+        late = datetime.strptime("2026-09-24T21:00:00-0500", "%Y-%m-%dT%H:%M:%S%z")
+        self.assertEqual(fetch_prices.tcgcsv_data_date(late), "2026-09-25")
+
+    def test_fetch_last_updated_parses_tcgcsv_timestamp(self):
+        client = fetch_prices.TCGCSVClient(session=MagicMock())
+        client.session.get.return_value = Mock(status_code=200, text="2026-11-21T20:06:04+0000\n")
+        with patch.object(fetch_prices.time, "sleep"):
+            stamp = fetch_prices.fetch_last_updated(client)
+        self.assertEqual(stamp, datetime(2026, 11, 21, 20, 6, 4, tzinfo=timezone.utc))
+        self.assertEqual(client.session.get.call_args[0][0], config.LAST_UPDATED_URL)
+
+    def test_refresh_during_run_writes_nothing(self):
+        later = datetime(2026, 9, 25, 20, 5, tzinfo=timezone.utc)
+        self.assertEqual(self.run_main(last_updated=[UPDATED_0924, later]), 1)
+        self.assertFalse(Path(self.db_path).exists())
 
     def test_too_few_rows_never_creates_database(self):
         self.assertEqual(self.run_main(min_rows=4), 1)

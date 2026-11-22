@@ -122,7 +122,7 @@ def build_price_rows(parsed_group_prices, date_str, min_market=config.STORE_MIN_
 
 
 def write_day_atomically(db_path, date_str, rows, rows_total, seen, min_expected,
-                         source, groups=0, failed_groups=()):
+                         source, groups=0, failed_groups=(), note=None):
     """
     Replace one date's prices and log the fetch in a single transaction.
     Refuses (raises, writes nothing) if rows_total < min_expected.
@@ -151,7 +151,7 @@ def write_day_atomically(db_path, date_str, rows, rows_total, seen, min_expected
             """,
             [(pid, gid, date_str, date_str) for pid, gid in seen.items()])
         _log_fetch(cur, date_str, source, FETCH_STATUS_OK, rows_total, len(rows),
-                   groups, failed_groups, min_expected, None)
+                   groups, failed_groups, min_expected, note)
         conn.commit()
         return rows_before, len(rows)
     except Exception:
