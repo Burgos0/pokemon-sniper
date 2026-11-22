@@ -24,6 +24,7 @@ class World:
         self.groups = {1: ("Old Set", OLD_SET)}
 
     def product(self, pid, name=None, group=1, sealed=False):
+        self.groups.setdefault(group, (f"Set {group}", OLD_SET))
         self.products[pid] = (name or f"Card {pid}", group, sealed)
 
     def series(self, pid, start, markets, lows=None, printing="Holofoil"):
@@ -82,12 +83,9 @@ class EngineTestBase(unittest.TestCase):
         return conn.execute(f"SELECT * FROM {table} ORDER BY 1, 2, 3").fetchall()
 
 
-def squeeze_card(world, pid, base, n, squeeze_from):
-    """A card whose low rises to its market price from day `squeeze_from` on."""
-    markets = wiggle(base, n)
-    lows = [m * (1.02 if i >= squeeze_from else 0.8) for i, m in enumerate(markets)]
-    world.product(pid)
-    world.series(pid, START, markets, lows)
+def bottoming(scale=1.0):
+    """60 days of prices on which rule C fires on the last day (index 59)."""
+    return [round(p * scale, 2) for p in [100.0] * 43 + wiggle(70, 14) + [72.0, 73.0, 75.0]]
 
 
 class UniverseTests(EngineTestBase):
@@ -143,15 +141,6 @@ class RuleTests(EngineTestBase):
         ctx = rules.build_context(panel, meta)
         return [(s.rule, s.product_id) for s in rules.compute_signals(panel, ctx)]
 
-    def test_rule_a_needs_two_squeeze_days_and_a_calm_week(self):
-        squeeze_card(self.world, 1, 50, 40, squeeze_from=39)   # only 1 day
-        squeeze_card(self.world, 2, 50, 40, squeeze_from=38)   # 2 days: fires
-        markets = wiggle(50, 33) + [56, 57, 58, 59, 60, 61, 62]  # +24% in a week
-        self.world.product(3)
-        self.world.series(3, START, markets, [m * 1.02 for m in markets])
-        self.world.save()
-        self.assertEqual(self.signals_on(rules.shift(START, 39)), [("A", 2)])
-
     def test_rule_b_box_rise_buys_rising_top_singles_of_that_set(self):
         self.world.product(100, "Old Set Booster Box", sealed=True)
         self.world.series(100, START, [100.0] * 20 + [100 + 2 * i for i in range(1, 21)],
@@ -188,105 +177,142 @@ class RuleTests(EngineTestBase):
 
 
 class StepTests(EngineTestBase):
-    def test_every_trade_executes_at_market_price(self):
-        squeeze_card(self.world, 1, 50, 60, squeeze_from=30)
-        self.world.series(1, START, wiggle(50, 45) + [75.0] * 15,
-                          [50.0] * 30 + [80.0] * 30)  # buy ~day 31, take profit at 75
+    DAY = rules.shift(START, 39)
+
+    def cards(self, prices, group=None, n=40, lows=None):
+        """One wiggling card per price; each in its own set unless group is given."""
+        for pid, price in prices.items():
+            self.world.product(pid, group=group or 100 + pid)
+            markets = wiggle(price, n)
+            self.world.series(pid, START, markets, lows and [lows.get(pid, 0.9) * m for m in markets])
         self.world.save()
-        conn = self.replay(rules.shift(START, 30), rules.shift(START, 59))
-        trades = conn.execute("SELECT date, product_id, printing, side, price FROM trades").fetchall()
-        self.assertEqual([t[3] for t in trades][:2], ["buy", "sell"])
+
+    def step(self, pids, day=None, conn=None, starting_cash=1000.0, last=None):
+        """Feed these cards as rule B signals on `day`, then step to `last` with no signals."""
+        day = day or self.DAY
+        last = last or day
+        meta = panel_mod.Metadata.load(self.prices_db)
+        panel = panel_mod.load_panel(self.prices_db, last, START)
+        ctx = rules.build_context(panel, meta)
+        if conn is None:
+            conn = engine.init_ledger(self.ledger_db)
+            engine.open_account(conn, "t", day, starting_cash)
+        view = panel.upto(day)
+        signals = [rules.Signal("B", view.col[(p, "Holofoil")], p, "Holofoil",
+                                float(view.market[-1, view.col[(p, "Holofoil")]]), "test")
+                   for p in pids]
+        engine.run_step(conn, "t", view, ctx, meta, signals=signals)
+        for d in panel_mod.calendar_days(rules.shift(day, 1), last) if last > day else []:
+            engine.run_step(conn, "t", panel.upto(d), ctx, meta, signals=[])
+        return conn
+
+    def skips(self, conn):
+        return {r for (r,) in conn.execute("SELECT DISTINCT skip_reason FROM signals")}
+
+    def test_buys_pay_higher_of_market_and_listing_and_sells_at_market(self):
+        self.world.product(1)
+        self.world.product(2)
+        # Card 1: cheapest listing 10% above market on the buy day. Card 2: below.
+        self.world.series(1, START, wiggle(50, 40) + [80.0], [45.0] * 39 + [55.0, 85.0])
+        self.world.series(2, START, wiggle(40, 40) + [60.0], [36.0] * 40 + [61.0])
+        self.world.save()
+        conn = self.step([1, 2], last=rules.shift(START, 40))
+        trades = conn.execute("SELECT date, product_id, side, price FROM trades "
+                              "ORDER BY id").fetchall()
         with sqlite3.connect(self.prices_db) as prices:
-            for day, pid, printing, _, price in trades:
-                low, mid, market = prices.execute(
-                    "SELECT low_price, mid_price, market_price FROM printing_prices WHERE date = ? "
-                    "AND product_id = ? AND printing = ?", (day, pid, printing)).fetchone()
-                self.assertEqual(price, market)
-                self.assertNotEqual(price, low)
-                self.assertNotEqual(price, mid)
+            for day, pid, side, price in trades:
+                low, market = prices.execute(
+                    "SELECT low_price, market_price FROM printing_prices WHERE date = ? AND "
+                    "product_id = ?", (day, pid)).fetchone()
+                self.assertEqual(price, max(market, low) if side == "buy" else market)
+        self.assertEqual([(p, s, price) for _, p, s, price in trades],
+                         [(1, "buy", 55.0), (2, "buy", 40.4), (1, "sell", 80.0), (2, "sell", 60.0)])
 
     def test_cash_never_negative(self):
-        for pid in range(1, 6):  # 5 squeezes near $190 use up almost all the cash
-            squeeze_card(self.world, pid, 190 + pid / 10, 40, squeeze_from=30)
-        for pid in range(21, 36):  # so most of these $35 cards cannot be afforded
-            squeeze_card(self.world, pid, 35 + pid / 10, 40, squeeze_from=30)
-        self.world.save()
-        conn = self.replay(rules.shift(START, 31), rules.shift(START, 39))
+        self.cards({**{p: 190 + p / 10 for p in range(1, 6)},     # ~$955 of cards
+                    **{p: 35 + p / 10 for p in range(21, 36)}})  # most unaffordable after
+        conn = self.step(list(range(1, 6)) + list(range(21, 36)))
         cash = [c for (c,) in conn.execute("SELECT cash FROM equity_history")]
         self.assertTrue(all(c >= 0 for c in cash))
-        skips = {r for (r,) in conn.execute("SELECT DISTINCT skip_reason FROM signals")}
-        self.assertIn("insufficient_cash", skips)
-        self.assertLess(conn.execute("SELECT COUNT(*) FROM positions").fetchone()[0], 10)
+        self.assertIn("insufficient_cash", self.skips(conn))
 
     def test_max_positions_and_one_copy_per_card(self):
-        for pid in range(1, 16):  # 15 cheap squeezes: only 10 slots
-            squeeze_card(self.world, pid, 25 + pid / 10, 40, squeeze_from=30)
-        self.world.save()
-        conn = self.replay(rules.shift(START, 31), rules.shift(START, 39))
+        self.cards({p: 25 + p / 10 for p in range(1, 16)}, n=41)
+        conn = self.step(list(range(1, 16)))
         self.assertEqual(conn.execute("SELECT COUNT(*) FROM positions").fetchone()[0],
                          config.MAX_OPEN_POSITIONS)
-        skips = {r for (r,) in conn.execute("SELECT DISTINCT skip_reason FROM signals")}
-        self.assertTrue({"max_positions", "already_held"} <= skips)
-        self.assertEqual(conn.execute("SELECT COUNT(*) FROM trades WHERE side = 'buy'")
-                         .fetchone()[0], config.MAX_OPEN_POSITIONS)
+        self.assertIn("max_positions", self.skips(conn))
+        self.step([1, 2], day=rules.shift(self.DAY, 1), conn=conn)
+        self.assertIn("already_held", self.skips(conn))
+
+    def test_at_most_two_positions_per_set(self):
+        self.cards({p: 30 + p for p in range(1, 5)}, group=7)
+        conn = self.step([1, 2, 3, 4])
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM positions").fetchone()[0],
+                         config.MAX_POSITIONS_PER_SET)
+        self.assertEqual(self.skips(conn), {None, "max_per_set"})
 
     def test_position_limit_is_20_percent_of_bankroll(self):
-        conn = engine.init_ledger(self.ledger_db)
-        engine.open_account(conn, "t", START, starting_cash=500.0)  # limit $100
-        squeeze_card(self.world, 1, 150, 40, squeeze_from=30)
+        self.cards({1: 150})
+        conn = self.step([1], starting_cash=500.0)  # limit $100
+        self.assertEqual(self.skips(conn), {"over_position_limit"})
+
+    def test_no_trades_on_day_without_fetch(self):
+        self.cards({1: 50})
+        with sqlite3.connect(self.prices_db) as conn:
+            conn.execute("DELETE FROM fetch_log WHERE date = ?", (self.DAY,))
+        conn = self.step([1])
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM trades").fetchone()[0], 0)
+        self.assertEqual(conn.execute("SELECT fetched FROM equity_history").fetchall(), [(0,)])
+
+    def test_stale_holding_keeps_last_price_and_is_flagged(self):
+        self.world.product(1)
+        self.world.series(1, START, wiggle(50, 40) + [None] * 10 + [52.0])
+        self.world.product(2)
+        self.world.series(2, START, wiggle(30, 51))  # keeps the fetch log going
         self.world.save()
-        meta = panel_mod.Metadata.load(self.prices_db)
-        panel = panel_mod.load_panel(self.prices_db, rules.shift(START, 39), START)
-        ctx = rules.build_context(panel, meta)
-        engine.run_step(conn, "t", panel, ctx, meta)
-        self.assertEqual(conn.execute("SELECT skip_reason FROM signals").fetchone()[0],
-                         "over_position_limit")
+        conn = self.step([1], last=rules.shift(START, 50))
+        rows = conn.execute("SELECT date, positions_value, stale_positions FROM equity_history "
+                            "ORDER BY date").fetchall()
+        values = {d: (v, s) for d, v, s in rows}
+        self.assertEqual(values[rules.shift(START, 46)], (50.5, 0))  # 7 days old: not stale
+        self.assertEqual(values[rules.shift(START, 47)], (50.5, 1))  # 8 days: stale, not $0
+        self.assertEqual(values[rules.shift(START, 50)], (52.0, 0))
 
     def test_step_is_idempotent(self):
-        squeeze_card(self.world, 1, 50, 40, squeeze_from=30)
+        self.world.product(1)
+        self.world.series(1, START, bottoming() + wiggle(80, 5))
         self.world.save()
-        conn = self.replay(rules.shift(START, 31), rules.shift(START, 39))
+        conn = self.replay(rules.shift(START, 50), rules.shift(START, 64))
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM trades").fetchone()[0], 1)
         before = {t: self.rows(conn, t) for t in ("trades", "positions", "equity_history", "signals",
                                                  "accounts", "benchmark_holdings")}
         meta = panel_mod.Metadata.load(self.prices_db)
-        panel = panel_mod.load_panel(self.prices_db, rules.shift(START, 39), START)
+        panel = panel_mod.load_panel(self.prices_db, rules.shift(START, 64), START)
         ctx = rules.build_context(panel, meta)
-        for day in (rules.shift(START, 39), rules.shift(START, 35)):
+        for day in (rules.shift(START, 64), rules.shift(START, 59)):
             result = engine.run_step(conn, "t", panel.upto(day), ctx, meta)
             self.assertEqual(result["status"], "already_done")
-        after = {t: self.rows(conn, t) for t in before}
-        self.assertEqual(before, after)
+        self.assertEqual(before, {t: self.rows(conn, t) for t in before})
 
     def test_no_lookahead(self):
-        for pid in range(1, 4):
-            squeeze_card(self.world, pid, 40 + pid * 10, 70, squeeze_from=30 + pid)
-        self.world.product(9)
-        self.world.series(9, START, [100.0] * 43 + wiggle(70, 14) + [72.0, 73.0, 74.0] +
-                          [90.0] * 10)
+        for pid in range(1, 4):  # rule C fires on days 59, 61, 63
+            self.world.product(pid, group=10 + pid)
+            self.world.series(pid, rules.shift(START, 2 * (pid - 1)),
+                              bottoming(1 + pid / 10) + [90.0] * 12)
         self.world.save()
-        cut = rules.shift(START, 59)
+        cut = rules.shift(START, 64)
         truncated = os.path.join(self.tmp.name, "truncated.db")
         shutil.copy(self.prices_db, truncated)
         with sqlite3.connect(truncated) as conn:
             conn.execute("DELETE FROM printing_prices WHERE date > ?", (cut,))
             conn.execute("DELETE FROM fetch_log WHERE date > ?", (cut,))
-        full = self.replay(rules.shift(START, 30), cut)
-        short = self.replay(rules.shift(START, 30), cut, prices_db=truncated,
+        full = self.replay(rules.shift(START, 50), cut)
+        short = self.replay(rules.shift(START, 50), cut, prices_db=truncated,
                             ledger_db=os.path.join(self.tmp.name, "short.db"))
         for table in ("trades", "positions", "equity_history", "signals", "benchmark_holdings"):
             self.assertEqual(self.rows(full, table), self.rows(short, table), table)
-        self.assertGreater(full.execute("SELECT COUNT(*) FROM trades").fetchone()[0], 0)
-
-    def test_no_trades_on_day_without_fetch(self):
-        squeeze_card(self.world, 1, 50, 40, squeeze_from=30)
-        self.world.save()
-        with sqlite3.connect(self.prices_db) as conn:
-            conn.execute("DELETE FROM fetch_log WHERE date = ?", (rules.shift(START, 32),))
-        conn = self.replay(rules.shift(START, 32), rules.shift(START, 33))
-        days = conn.execute("SELECT date, fetched FROM equity_history").fetchall()
-        self.assertEqual(days, [(rules.shift(START, 32), 0), (rules.shift(START, 33), 1)])
-        self.assertEqual({d for (d,) in conn.execute("SELECT date FROM trades")},
-                         {rules.shift(START, 33)})
+        self.assertGreaterEqual(full.execute("SELECT COUNT(*) FROM trades").fetchone()[0], 3)
 
 
 class ExitTests(unittest.TestCase):
@@ -300,21 +326,14 @@ class ExitTests(unittest.TestCase):
         self.assertIsNone(engine._exit_reason(101, 100, 105, 89)[0])
 
 
-class ValuationAndBenchmarkTests(EngineTestBase):
-    def test_carry_forward_up_to_7_days_then_zero(self):
-        market = np.array([[10.0]] + [[np.nan]] * 7)
-        panel = panel_mod.PricePanel(panel_mod.calendar_days(START, rules.shift(START, 7)),
-                                     [(1, "Holofoil")], market, market.copy(), np.ones(8, bool))
-        self.assertEqual(rules.valuation_prices(panel)[0], 10.0)
-        market = np.vstack([market, [[np.nan]]])
-        panel = panel_mod.PricePanel(panel_mod.calendar_days(START, rules.shift(START, 8)),
-                                     [(1, "Holofoil")], market, market.copy(), np.ones(9, bool))
-        self.assertEqual(rules.valuation_prices(panel)[0], 0.0)
-
-    def test_benchmark_is_equal_weight_top_20_fractional(self):
+class BenchmarkTests(EngineTestBase):
+    def test_benchmark_is_equal_weight_top_20_liquid_cards(self):
         for pid in range(1, 26):
             self.world.product(pid)
             self.world.series(pid, START, wiggle(20 + pid * 5, 40))
+        # The most expensive card, but priced on only 8 of the last 12 days.
+        self.world.product(99)
+        self.world.series(99, START, wiggle(190, 35) + [None] * 4 + [190.0])
         self.world.save()
         conn = self.replay(rules.shift(START, 39), rules.shift(START, 39))
         held = conn.execute("SELECT product_id, entry_price * shares FROM benchmark_holdings").fetchall()
@@ -323,6 +342,18 @@ class ValuationAndBenchmarkTests(EngineTestBase):
             self.assertAlmostEqual(value, 50.0)
         self.assertAlmostEqual(conn.execute("SELECT benchmark_total FROM equity_history")
                                .fetchone()[0], 1000.0)
+
+    def test_benchmark_buys_at_higher_of_market_and_listing(self):
+        for pid in range(1, 21):
+            self.world.product(pid)
+            markets = wiggle(50, 40)
+            self.world.series(pid, START, markets, [m * (1.25 if pid == 1 else 0.9) for m in markets])
+        self.world.save()
+        conn = self.replay(rules.shift(START, 39), rules.shift(START, 39))
+        entry, shares = conn.execute("SELECT entry_price, shares FROM benchmark_holdings "
+                                     "WHERE product_id = 1").fetchone()
+        self.assertAlmostEqual(entry, 50.5 * 1.25)
+        self.assertAlmostEqual(shares, 50 / entry)
 
 
 class BacktestWindowTests(unittest.TestCase):

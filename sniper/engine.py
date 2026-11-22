@@ -3,10 +3,12 @@
 A step on date D, given a PricePanel ending at D:
   1. (fetch days only) sets up the benchmark on the account's first fetch day,
      sells positions that hit an exit, then buys signals in priority order;
-  2. values cash, positions and benchmark (prices carried forward up to
-     VALUATION_CARRY_DAYS) and records the day in equity_history.
-Every trade executes at D's market price. Re-running a processed date is a
-no-op.
+  2. values cash, positions and benchmark at each holding's last known market
+     price (flagged stale when older than VALUATION_CARRY_DAYS) and records the
+     day in equity_history.
+Buys execute at the higher of D's market price and cheapest listing (nothing
+was for sale below the listing); sells execute at D's market price.
+Re-running a processed date is a no-op.
 """
 import os
 import sqlite3
@@ -31,6 +33,8 @@ CREATE TABLE IF NOT EXISTS positions (
     buy_price REAL NOT NULL,
     peak_price REAL NOT NULL,
     rule TEXT NOT NULL,
+    last_price REAL NOT NULL,       -- latest market price, for valuation
+    last_price_date TEXT NOT NULL,
     PRIMARY KEY (account, product_id, printing)
 );
 CREATE TABLE IF NOT EXISTS trades (
@@ -82,6 +86,8 @@ CREATE TABLE IF NOT EXISTS benchmark_holdings (
     start_date TEXT NOT NULL,
     entry_price REAL NOT NULL,
     shares REAL NOT NULL,
+    last_price REAL NOT NULL,
+    last_price_date TEXT NOT NULL,
     PRIMARY KEY (account, product_id, printing)
 );
 CREATE TABLE IF NOT EXISTS rule_b_boxes (
@@ -167,20 +173,37 @@ def run_step(conn, account, panel, ctx, meta, signals=None):
         return {"date": as_of, "status": "already_done"}
 
     today = panel.market[-1]
+    today_low = panel.low[-1]
     fetched = bool(panel.fetched[-1])
     bought = sold = 0
     max_position = starting_cash * config.MAX_POSITION_FRACTION
     with conn:
         if fetched:
+            # Latest market price of every holding, for valuation.
+            for table in ("positions", "benchmark_holdings"):
+                for pid, printing in conn.execute(
+                        f"SELECT product_id, printing FROM {table} WHERE account = ?",
+                        (account,)).fetchall():
+                    price = _price(panel, (pid, printing), today)
+                    if not np.isnan(price):
+                        conn.execute(
+                            f"UPDATE {table} SET last_price = ?, last_price_date = ? "
+                            "WHERE account = ? AND product_id = ? AND printing = ?",
+                            (float(price), as_of, account, pid, printing))
+
             # Benchmark: set up on the account's first fetch day with a universe.
+            # It buys like the bot does, at the higher of market and listing.
             if not conn.execute("SELECT 1 FROM benchmark_holdings WHERE account = ? LIMIT 1",
                                 (account,)).fetchone():
                 picks = rules.benchmark_picks(panel, ctx)
                 each = starting_cash / len(picks) if picks else 0
+                rows = []
+                for j in picks:
+                    entry = rules.buy_price(today[j], today_low[j])
+                    rows.append((account, *panel.ids[j], as_of, entry, each / entry,
+                                 float(today[j]), as_of))
                 conn.executemany(
-                    "INSERT INTO benchmark_holdings VALUES (?, ?, ?, ?, ?, ?)",
-                    [(account, *panel.ids[j], as_of, float(today[j]), each / float(today[j]))
-                     for j in picks])
+                    "INSERT INTO benchmark_holdings VALUES (?, ?, ?, ?, ?, ?, ?, ?)", rows)
 
             # Exits, at today's market price.
             sold_today = set()
@@ -216,10 +239,17 @@ def run_step(conn, account, panel, ctx, meta, signals=None):
                 signals = rules.compute_signals(panel, ctx)
             held = {tuple(r) for r in conn.execute(
                 "SELECT product_id, printing FROM positions WHERE account = ?", (account,))}
+            per_set = {}
+            for pid, _ in held:
+                gid = (meta.products.get(pid) or {}).get("group_id")
+                per_set[gid] = per_set.get(gid, 0) + 1
             bought_by = {}
             for s in signals:
                 key = (s.product_id, s.printing)
-                price = float(today[panel.col[key]])  # always today's market price
+                j = panel.col[key]
+                market = float(today[j])
+                price = rules.buy_price(today[j], today_low[j])
+                gid = (meta.products.get(s.product_id) or {}).get("group_id")
                 if key in bought_by:
                     skip = f"bought_by_rule_{bought_by[key]}"
                 elif key in held:
@@ -228,6 +258,8 @@ def run_step(conn, account, panel, ctx, meta, signals=None):
                     skip = "sold_today"
                 elif len(held) >= config.MAX_OPEN_POSITIONS:
                     skip = "max_positions"
+                elif per_set.get(gid, 0) >= config.MAX_POSITIONS_PER_SET:
+                    skip = "max_per_set"
                 elif price > max_position:
                     skip = "over_position_limit"
                 elif price > cash:
@@ -236,40 +268,40 @@ def run_step(conn, account, panel, ctx, meta, signals=None):
                     skip = None
                     cash -= price
                     held.add(key)
+                    per_set[gid] = per_set.get(gid, 0) + 1
                     bought_by[key] = s.rule
                     bought += 1
                     conn.execute(
-                        "INSERT INTO positions VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        (account, s.product_id, s.printing, as_of, price, price, s.rule))
+                        "INSERT INTO positions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (account, s.product_id, s.printing, as_of, price, market, s.rule,
+                         market, as_of))
                     conn.execute(
                         "INSERT INTO trades (account, date, product_id, printing, card, set_name, "
                         "side, price, rule, reason) VALUES (?, ?, ?, ?, ?, ?, 'buy', ?, ?, ?)",
                         (account, as_of, s.product_id, s.printing, meta.card_name(s.product_id),
-                         meta.set_name(s.product_id), price, s.rule, s.detail))
+                         meta.set_name(s.product_id), price, s.rule,
+                         f"{s.detail}; paid {price:.2f} (market {market:.2f})"))
                 conn.execute("INSERT INTO signals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                              (account, as_of, s.product_id, s.printing, s.rule, price,
                               int(skip is None), skip, s.detail))
             if cash < -1e-9:
                 raise AssertionError(f"cash went negative: {cash}")
 
-        # Valuation (carry-forward allowed here only).
-        values = rules.valuation_prices(panel)
-        positions = conn.execute("SELECT product_id, printing FROM positions WHERE account = ?",
-                                 (account,)).fetchall()
-        pos_prices = [_price(panel, tuple(k), values) for k in positions]
-        pos_prices = [0.0 if np.isnan(p) else float(p) for p in pos_prices]
-        bench = conn.execute("SELECT product_id, printing, shares FROM benchmark_holdings "
+        # Valuation: last known market price; stale if older than the carry limit.
+        def stale(price_date):
+            return rules.days_between(price_date, as_of) > config.VALUATION_CARRY_DAYS
+
+        positions = conn.execute("SELECT last_price, last_price_date FROM positions "
+                                 "WHERE account = ?", (account,)).fetchall()
+        bench = conn.execute("SELECT shares, last_price, last_price_date FROM benchmark_holdings "
                              "WHERE account = ?", (account,)).fetchall()
-        bench_prices = [_price(panel, (pid, s), values) for pid, s, _ in bench]
-        bench_prices = [0.0 if np.isnan(p) else float(p) for p in bench_prices]
-        positions_value = float(sum(pos_prices))
-        bench_total = (float(sum(p * sh for p, (_, _, sh) in zip(bench_prices, bench)))
-                       if bench else starting_cash)
+        positions_value = float(sum(p for p, _ in positions))
+        bench_total = float(sum(sh * p for sh, p, _ in bench)) if bench else starting_cash
         conn.execute(
             "INSERT INTO equity_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (account, as_of, int(fetched), cash, positions_value, cash + positions_value,
-             bench_total, len(positions), int(sum(p == 0 for p in pos_prices)),
-             int(sum(p == 0 for p in bench_prices))))
+             bench_total, len(positions), sum(stale(d) for _, d in positions),
+             sum(stale(d) for _, _, d in bench)))
         conn.execute("UPDATE accounts SET cash = ?, last_date = ? WHERE account = ?",
                      (cash, as_of, account))
     return {"date": as_of, "status": "ok" if fetched else "no_fetch", "bought": bought,

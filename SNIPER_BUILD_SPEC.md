@@ -120,12 +120,18 @@ continue without waiting.
 ### Money and execution
 
 - Starting bankroll: **$1,000** (config).
-- Buys and sells both execute at that day's **market price**. No fees, tax, or
-  shipping in v1.
+- Buys execute at the **higher of that day's market price and cheapest
+  listing** (`low_price`): when the cheapest listing is above the market
+  price, nothing was for sale at the market price. Sells execute at that
+  day's **market price**. No fees, tax, or shipping in v1. (Decided
+  2026-11-22, after the first backtest showed buys at market below every
+  listing.)
 - Log every trade raw (date, product_id, printing, card, set, side, price,
   rule, reason) so fees can be applied retroactively later.
-- Limits: 1 copy per card, max 20% of starting bankroll ($200) per position,
-  max 10 open positions, cash can never go negative.
+- Limits: 1 copy per card (a card is a `(product_id, printing)` identity, so
+  Holofoil and Reverse Holofoil are different cards), max 20% of starting
+  bankroll ($200) per position, max 10 open positions, at most 2 open
+  positions from the same set, cash can never go negative.
 - One trading step per date, idempotent: re-running a date changes nothing.
 
 ### Calendar and missing days
@@ -134,8 +140,12 @@ continue without waiting.
 - A window is valid only if at least 80% of its days have a price. A rule
   whose window is invalid does not fire.
 - No trades on a day with no fetch.
-- For valuing open positions and the benchmark only, carry the last price
-  forward up to 7 days. Never carry prices forward for signals.
+- For valuing open positions and the benchmark only, use the last known
+  market price. A price older than 7 days is flagged stale (and reported),
+  never valued at $0. Never carry prices forward for signals.
+- A window of N days is valid if prices exist on at least 80% of its days,
+  rounded up. The universe's "9 of the last 12 days" rule is the one
+  exception and is used as written.
 
 ### Tables (`data/sniper.db`)
 
@@ -157,28 +167,35 @@ A card is tradeable only if all are true:
 
 ### Low price
 
-`low_price` can come from worse-condition copies (the Gengar's low was 94.59
-against a 167.12 market price). It is never an execution price: every trade
-executes at that day's market price.
+`low_price` is the cheapest listing in any condition (the Gengar's low was
+94.59 against a 167.12 market price). A buy never pays less than the market
+price, but pays `low_price` when that is higher, since no copy was listed
+below it.
 
 ### Entry rules (each trade records which rule fired)
 
-- **A. Floor squeeze:** `low_price >= market_price` for 2 consecutive
-  days, and market price moved less than 10% over the last 7 days.
+- **A. Floor squeeze: removed (2026-11-22).** It fired when
+  `low_price >= market_price`, exactly when buying at market was impossible;
+  paying the listing price turned its +25.7% average return into −3.2%.
 - **B. Sealed lead:** the set's box market price is up ≥ 10% over 30
-  days. Then its 5 most expensive singles are eligible; buy one when its
-  3-day median is above its median from 7 days earlier.
+  days. Then its 5 most expensive singles are eligible; each one whose
+  3-day median is above its 3-day median from 7 days earlier is a signal.
   - The set's box is the sealed product whose name contains "Booster Box"
     (excluding names containing "Case"). If the set has none, fall back to
     the sealed product whose name contains "Elite Trainer Box" (excluding
     "Pokemon Center"). If neither exists, rule B skips that set.
     Only products with live metadata are candidates (the name is needed).
+    "Code Card" products (digital codes) are never boxes. If a set has
+    several candidates, the shortest name wins ("X Booster Box" over "X Half
+    Booster Box"), then the lowest product_id.
   - Log which product was chosen for each set.
 - **C. Bottoming:** market price is ≥ 20% below its 60-day high, stayed within
-  ±5% for 14 days, then rose ≥ 5% over 3 days.
+  ±5% for 14 days, then rose ≥ 5% over 3 days. (The 14-day flat stretch's
+  median must be ≥ 20% below the 60-day high; the 3-day rise is measured from
+  the last price in the flat stretch.)
 
-If more signals fire than cash allows, rank A, then B, then C, then by
-higher price.
+If more signals fire than cash or limits allow, rank B, then C, then by
+higher market price.
 
 ### Exit rules
 
@@ -191,7 +208,9 @@ higher price.
 
 Buy-and-hold equal-weight index: on the first day of the window, split
 $1,000 equally across the 20 most expensive cards in the tradeable universe
-($20 to $200), with fractional shares allowed, and never trade. Bot and
+($20 to $200, including its liquidity filters), with fractional shares
+allowed, buying at the same price as the bot (higher of market and cheapest
+listing), and never trade. Bot and
 benchmark draw from the same pool. Track its value daily.
 
 Every evaluation window (first half, second half, each calendar year, and
@@ -251,7 +270,8 @@ step fails.
   exist in the DB.
 - Trading step is idempotent.
 - Cash never negative; position limits enforced.
-- Every trade executes at that day's market price (never low, mid or high).
+- Buys execute at the higher of market and cheapest listing; sells at
+  market (never mid or high).
 - Sealed products never enter the singles universe.
 
 ## 9. Out of scope for v1

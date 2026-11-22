@@ -1,4 +1,4 @@
-"""Universe filter, rule B box choice, and the three entry rules.
+"""Universe filter, rule B box choice, and the entry rules (B and C).
 
 Every function takes a PricePanel whose last row is the day being decided
 (`as_of`) and only looks at rows of that panel, so nothing after as_of can be
@@ -171,25 +171,6 @@ def universe_mask(panel, ctx):
 
 # --- rules ------------------------------------------------------------------
 
-def rule_a(panel, universe):
-    """Floor squeeze: low >= market on 2 straight days, <10% move over 7 days."""
-    m, low = panel.market, panel.low
-    k = config.A_CONSECUTIVE_DAYS
-    days = config.A_STABLE_DAYS
-    win = last_rows(m, days + 1)
-    if win is None or m.shape[0] < k:
-        return []
-    with np.errstate(invalid="ignore"):
-        squeeze = np.all(low[-k:] >= m[-k:], axis=0)  # NaN compares False
-        ref = first_observed(win[:-1])
-        move = np.abs(m[-1] / ref - 1)
-        fire = universe & squeeze & valid(win) & (move < config.A_MAX_MOVE)
-    return [Signal("A", j, *panel.ids[j], float(m[-1, j]),
-                   f"low {low[-1, j]:.2f} >= market {m[-1, j]:.2f} for {k} days; "
-                   f"{days}-day move {m[-1, j] / ref[j] - 1:+.1%}")
-            for j in np.flatnonzero(fire)]
-
-
 def rule_b(panel, universe, ctx):
     """Sealed lead: box up >=10% over 30 days; its set's top 5 singles with rising medians."""
     m = panel.market
@@ -253,9 +234,9 @@ def rule_c(panel, universe):
 
 
 def compute_signals(panel, ctx):
-    """All signals for panel.as_of, in buying order: A, B, C, then higher price."""
+    """All signals for panel.as_of, in buying order: B, then C, then higher market price."""
     universe = universe_mask(panel, ctx)
-    signals = rule_a(panel, universe) + rule_b(panel, universe, ctx) + rule_c(panel, universe)
+    signals = rule_b(panel, universe, ctx) + rule_c(panel, universe)
     rank = {r: i for i, r in enumerate(config.RULE_PRIORITY)}
     signals.sort(key=lambda s: (rank[s.rule], -s.price, s.product_id, s.printing))
     return signals
@@ -268,13 +249,14 @@ def benchmark_picks(panel, ctx):
     return sorted(cols, key=lambda j: (-panel.market[-1, j], panel.ids[j]))[:config.BENCHMARK_SIZE]
 
 
-def valuation_prices(panel):
-    """Last price within VALUATION_CARRY_DAYS (valuation only); 0 beyond that."""
-    win = last_rows(panel.market, config.VALUATION_CARRY_DAYS + 1)
-    if win is None:
-        win = panel.market
-    out = last_observed(win)
-    return np.nan_to_num(out, nan=0.0)
+def buy_price(market, low):
+    """
+    What a buy costs: the higher of the market price and the cheapest listing.
+    When the cheapest listing is above the market price, nothing was for sale
+    at the market price.
+    """
+    market = float(market)
+    return market if np.isnan(low) else max(market, float(low))
 
 
 def days_between(a, b):

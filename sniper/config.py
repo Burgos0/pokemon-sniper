@@ -74,6 +74,7 @@ BACKTEST_DB_PATH = "data/backtest.db"  # backtest ledgers; never the live one
 STARTING_BANKROLL = 1000.00
 MAX_POSITION_FRACTION = 0.20  # of the starting bankroll per position ($200)
 MAX_OPEN_POSITIONS = 10
+MAX_POSITIONS_PER_SET = 2
 # One copy per card. A "card" is a (product_id, printing) identity, the same
 # identity used everywhere else, so a Holofoil and a Reverse Holofoil of one
 # product are two cards.
@@ -82,9 +83,9 @@ MAX_OPEN_POSITIONS = 10
 # A window of N calendar days is valid only if prices exist on at least this
 # share of its days (rounded up). A rule with an invalid window does not fire.
 WINDOW_MIN_COVERAGE = 0.80
-# Valuation only (open positions and benchmark): carry the last price forward
-# up to this many days. Beyond that a holding is valued at $0, since prices
-# under the $5 storage floor are not stored.
+# Valuation only (open positions and benchmark): holdings are valued at their
+# last known market price; one older than this many days is flagged stale.
+# Thin cards can go weeks without a price, so stale is never valued at $0.
 VALUATION_CARRY_DAYS = 7
 
 # --- Universe --------------------------------------------------------------
@@ -95,11 +96,6 @@ UNIVERSE_RECENT_DAYS = 12        # priced on at least...
 UNIVERSE_RECENT_MIN_PRICED = 9   # ...9 of the last 12 days (the owner's rule, not 80%)
 UNIVERSE_CHANGE_DAYS = 30        # market price changed on at least...
 UNIVERSE_MIN_CHANGES = 2         # ...2 days in the last 30
-
-# --- Rule A: floor squeeze -------------------------------------------------
-A_CONSECUTIVE_DAYS = 2   # low_price >= market_price on this many days in a row
-A_STABLE_DAYS = 7        # and the market price moved less than...
-A_MAX_MOVE = 0.10        # ...10% over the last 7 days
 
 # --- Rule B: sealed lead ---------------------------------------------------
 B_BOX_LOOKBACK_DAYS = 30
@@ -124,8 +120,10 @@ C_FLAT_BAND = 0.05
 C_RISE_DAYS = 3           # ...then rose >= 5% over the next 3 days
 C_MIN_RISE = 0.05
 
-# When signals exceed cash or slots: A, then B, then C, then higher price.
-RULE_PRIORITY = ("A", "B", "C")
+# When signals exceed cash or slots: B, then C, then higher market price.
+# Rule A (floor squeeze) was removed on 2026-11-22: it only "won" by buying at
+# a market price below every listing, which no real buyer could get.
+RULE_PRIORITY = ("B", "C")
 
 # --- Exits -----------------------------------------------------------------
 TAKE_PROFIT = 0.40

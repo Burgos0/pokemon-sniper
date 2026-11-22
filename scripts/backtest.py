@@ -194,9 +194,10 @@ def to_markdown(report):
             for rule, r in w["rules"].items()))
         out.append(f"Exit reasons: {w['exit_reasons']}. Open at end: {w['open_positions_at_end']} "
                    f"(${w['open_positions_value_at_end']:,.2f}). No-fetch days: "
-                   f"{len(w['no_fetch_days'])}. Position-days valued at $0 (no price within "
-                   f"{config.VALUATION_CARRY_DAYS} days): {w['stale_position_days']}; benchmark "
-                   f"holding-days: {w['stale_benchmark_days']}.")
+                   f"{len(w['no_fetch_days'])}. Stale (last price over "
+                   f"{config.VALUATION_CARRY_DAYS} days old, valued at that price) position-days: "
+                   f"{w['stale_position_days']}; benchmark holding-days: "
+                   f"{w['stale_benchmark_days']}.")
     return "\n".join(out) + "\n"
 
 
