@@ -139,3 +139,10 @@ BENCHMARK_SIZE = 20  # equal-weight, fractional shares, never traded
 # Trading starts this many days into the price history, so the longest rule
 # window (60 days) can be valid on the first trading day.
 BACKTEST_WARMUP_DAYS = 60
+
+# --- Dashboard (milestone 6) -----------------------------------------------
+SITE_DIR = "site"
+# Backtest results for the frozen rules, committed so the daily build can show
+# them without re-running the backtest.
+BACKTEST_FROZEN_PATH = "data/backtest_frozen.json"
+TCGPLAYER_PRODUCT_URL = "https://www.tcgplayer.com/product/{product_id}"
