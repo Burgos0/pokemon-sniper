@@ -145,4 +145,5 @@ SITE_DIR = "site"
 # Backtest results for the frozen rules, committed so the daily build can show
 # them without re-running the backtest.
 BACKTEST_FROZEN_PATH = "data/backtest_frozen.json"
+REPO_URL = "https://github.com/Burgos0/pokemon-sniper"
 TCGPLAYER_PRODUCT_URL = "https://www.tcgplayer.com/product/{product_id}"

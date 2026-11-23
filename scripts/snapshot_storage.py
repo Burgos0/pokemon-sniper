@@ -34,12 +34,14 @@ import subprocess
 import tempfile
 from datetime import datetime, timezone
 
-SNAPSHOT_FILES = ("prices.db",)
+SNAPSHOT_FILES = ("prices.db", "sniper.db")
 MANIFEST_FILENAME = "manifest.json"
 POINTER_TAG_PREFIX = "data-pointer-"
 POINTER_FILENAME = "pointer.json"
 REQUIRED_TABLES = {
     "prices.db": ["printing_prices", "products", "groups", "fetch_log"],
+    "sniper.db": ["accounts", "positions", "trades", "equity_history", "signals",
+                  "benchmark_holdings"],
 }
 MIN_EXPECTED_BYTES = {
     "prices.db": 1024,   # a real prices.db is hundreds of MB; guard against a near-empty file

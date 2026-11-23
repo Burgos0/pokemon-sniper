@@ -1,0 +1,438 @@
+{
+  "built_at": "2026-11-23 21:26 UTC",
+  "starting_bankroll": 1000.0,
+  "live": {
+    "started": false,
+    "start_date": null,
+    "last_date": null,
+    "days_live": 0,
+    "cash": 1000.0,
+    "positions_value": 0.0,
+    "total": 1000.0,
+    "benchmark_total": 1000.0,
+    "equity": [],
+    "open_positions": [],
+    "closed_trades": [],
+    "signals": [],
+    "scoreboard": []
+  },
+  "health": {
+    "last_fetch_date": "2026-11-20",
+    "source": "archive",
+    "rows_fetched": 45809,
+    "rows_stored": 14986,
+    "sets": 222,
+    "failed_sets": [],
+    "fetched_at": "2026-11-21T07:54:22Z",
+    "recent_problems": []
+  },
+  "backtest": {
+    "frozen_on": "2026-11-22",
+    "rules_commit": "0f400a8",
+    "note": "Backtest of the frozen rules (B and C) over archived prices. Not live results.",
+    "windows": {
+      "full": {
+        "window": [
+          "2024-04-07",
+          "2026-11-20"
+        ],
+        "days": 958,
+        "no_fetch_days": [],
+        "bot_end": 2988.9500000000007,
+        "bot_return": 1.9889500000000009,
+        "benchmark_end": 2293.266351571111,
+        "benchmark_return": 1.293266351571111,
+        "excess_return": 0.69568364842889,
+        "bot_max_drawdown": -0.14236924082634606,
+        "benchmark_max_drawdown": -0.09994814554564357,
+        "open_positions_at_end": 10,
+        "open_positions_value_at_end": 1324.4399999999998,
+        "exit_reasons": {
+          "take_profit": 20,
+          "trailing_stop": 3,
+          "time_stop": 85,
+          "hard_stop": 7
+        },
+        "stale_position_days": 0,
+        "stale_benchmark_days": 94,
+        "rules": {
+          "B": {
+            "closed_trades": 102,
+            "win_rate": 0.7156862745098039,
+            "avg_return": 0.13726768121647145,
+            "median_return": 0.12450190718030807,
+            "avg_hold_days": 78.81372549019608,
+            "avg_return_vs_benchmark": 0.043034564719099,
+            "realized_pnl": 2014.0599999999993,
+            "open_at_end": 5,
+            "signals_fired": 23438,
+            "signals_distinct_cards": 456,
+            "bought": 107,
+            "skipped": {
+              "already_held": 1635,
+              "insufficient_cash": 158,
+              "max_per_set": 179,
+              "max_positions": 21341,
+              "over_position_limit": 7,
+              "sold_today": 11
+            }
+          },
+          "C": {
+            "closed_trades": 13,
+            "win_rate": 0.38461538461538464,
+            "avg_return": -0.02416428009938763,
+            "median_return": 0.0,
+            "avg_hold_days": 75.84615384615384,
+            "avg_return_vs_benchmark": -0.05317734651103931,
+            "realized_pnl": -9.150000000000006,
+            "open_at_end": 5,
+            "signals_fired": 6908,
+            "signals_distinct_cards": 2086,
+            "bought": 18,
+            "skipped": {
+              "already_held": 14,
+              "insufficient_cash": 82,
+              "max_per_set": 1,
+              "max_positions": 6790,
+              "over_position_limit": 2,
+              "sold_today": 1
+            }
+          }
+        }
+      },
+      "first_half": {
+        "window": [
+          "2024-04-07",
+          "2025-07-29"
+        ],
+        "days": 479,
+        "no_fetch_days": [],
+        "bot_end": 2349.55,
+        "bot_return": 1.3495500000000002,
+        "benchmark_end": 1620.874186580946,
+        "benchmark_return": 0.620874186580946,
+        "excess_return": 0.7286758134190543,
+        "bot_max_drawdown": -0.14236924082634606,
+        "benchmark_max_drawdown": -0.03537412687981423,
+        "open_positions_at_end": 10,
+        "open_positions_value_at_end": 1703.78,
+        "exit_reasons": {
+          "take_profit": 15,
+          "trailing_stop": 2,
+          "time_stop": 37,
+          "hard_stop": 5
+        },
+        "stale_position_days": 0,
+        "stale_benchmark_days": 0,
+        "rules": {
+          "B": {
+            "closed_trades": 46,
+            "win_rate": 0.8260869565217391,
+            "avg_return": 0.21453104296259648,
+            "median_return": 0.20322455900515135,
+            "avg_hold_days": 72.30434782608695,
+            "avg_return_vs_benchmark": 0.1280371024090079,
+            "realized_pnl": 1307.7299999999998,
+            "open_at_end": 10,
+            "signals_fired": 11885,
+            "signals_distinct_cards": 321,
+            "bought": 56,
+            "skipped": {
+              "already_held": 925,
+              "insufficient_cash": 158,
+              "max_per_set": 156,
+              "max_positions": 10579,
+              "over_position_limit": 3,
+              "sold_today": 8
+            }
+          },
+          "C": {
+            "closed_trades": 13,
+            "win_rate": 0.38461538461538464,
+            "avg_return": -0.02416428009938763,
+            "median_return": 0.0,
+            "avg_hold_days": 75.84615384615384,
+            "avg_return_vs_benchmark": -0.05317734651103931,
+            "realized_pnl": -9.150000000000006,
+            "open_at_end": 0,
+            "signals_fired": 1788,
+            "signals_distinct_cards": 627,
+            "bought": 13,
+            "skipped": {
+              "already_held": 12,
+              "insufficient_cash": 82,
+              "max_positions": 1680,
+              "sold_today": 1
+            }
+          }
+        }
+      },
+      "second_half": {
+        "window": [
+          "2025-07-30",
+          "2026-11-20"
+        ],
+        "days": 479,
+        "no_fetch_days": [],
+        "bot_end": 1743.4000000000003,
+        "bot_return": 0.7434000000000003,
+        "benchmark_end": 1808.2229242955555,
+        "benchmark_return": 0.8082229242955554,
+        "excess_return": -0.06482292429555514,
+        "bot_max_drawdown": -0.07542339286894095,
+        "benchmark_max_drawdown": -0.0476842192419209,
+        "open_positions_at_end": 10,
+        "open_positions_value_at_end": 1323.2900000000002,
+        "exit_reasons": {
+          "take_profit": 9,
+          "time_stop": 39,
+          "trailing_stop": 1,
+          "hard_stop": 1
+        },
+        "stale_position_days": 0,
+        "stale_benchmark_days": 122,
+        "rules": {
+          "B": {
+            "closed_trades": 48,
+            "win_rate": 0.6875,
+            "avg_return": 0.1056780200610409,
+            "median_return": 0.08669169345339234,
+            "avg_hold_days": 77.875,
+            "avg_return_vs_benchmark": -0.015683217629225598,
+            "realized_pnl": 661.0000000000002,
+            "open_at_end": 8,
+            "signals_fired": 11553,
+            "signals_distinct_cards": 369,
+            "bought": 56,
+            "skipped": {
+              "already_held": 739,
+              "insufficient_cash": 5623,
+              "max_per_set": 139,
+              "max_positions": 4919,
+              "over_position_limit": 71,
+              "sold_today": 6
+            }
+          },
+          "C": {
+            "closed_trades": 2,
+            "win_rate": 0.5,
+            "avg_return": 0.002933706450295004,
+            "median_return": 0.002933706450295004,
+            "avg_hold_days": 90,
+            "avg_return_vs_benchmark": -0.07757749092127231,
+            "realized_pnl": 1.240000000000002,
+            "open_at_end": 2,
+            "signals_fired": 5120,
+            "signals_distinct_cards": 1671,
+            "bought": 4,
+            "skipped": {
+              "already_held": 3,
+              "insufficient_cash": 921,
+              "max_per_set": 1,
+              "max_positions": 4176,
+              "over_position_limit": 15
+            }
+          }
+        }
+      },
+      "2024": {
+        "window": [
+          "2024-04-07",
+          "2024-12-31"
+        ],
+        "days": 269,
+        "no_fetch_days": [],
+        "bot_end": 1712.47,
+        "bot_return": 0.7124699999999999,
+        "benchmark_end": 1179.656761086424,
+        "benchmark_return": 0.17965676108642392,
+        "excess_return": 0.532813238913576,
+        "bot_max_drawdown": -0.14236924082634606,
+        "benchmark_max_drawdown": -0.03537412687981423,
+        "open_positions_at_end": 10,
+        "open_positions_value_at_end": 1415.47,
+        "exit_reasons": {
+          "take_profit": 11,
+          "trailing_stop": 2,
+          "time_stop": 16,
+          "hard_stop": 4
+        },
+        "stale_position_days": 0,
+        "stale_benchmark_days": 0,
+        "rules": {
+          "B": {
+            "closed_trades": 22,
+            "win_rate": 0.8181818181818182,
+            "avg_return": 0.244406217871015,
+            "median_return": 0.30012074544582934,
+            "avg_hold_days": 56.68181818181818,
+            "avg_return_vs_benchmark": 0.20025508371931647,
+            "realized_pnl": 609.76,
+            "open_at_end": 8,
+            "signals_fired": 2695,
+            "signals_distinct_cards": 140,
+            "bought": 30,
+            "skipped": {
+              "already_held": 386,
+              "insufficient_cash": 158,
+              "max_per_set": 152,
+              "max_positions": 1966,
+              "sold_today": 3
+            }
+          },
+          "C": {
+            "closed_trades": 11,
+            "win_rate": 0.36363636363636365,
+            "avg_return": -0.03964466888295338,
+            "median_return": 0.0,
+            "avg_hold_days": 73.27272727272727,
+            "avg_return_vs_benchmark": -0.058269700370083034,
+            "realized_pnl": -33.18000000000002,
+            "open_at_end": 2,
+            "signals_fired": 882,
+            "signals_distinct_cards": 326,
+            "bought": 13,
+            "skipped": {
+              "already_held": 12,
+              "insufficient_cash": 82,
+              "max_positions": 774,
+              "sold_today": 1
+            }
+          }
+        }
+      },
+      "2025": {
+        "window": [
+          "2025-01-01",
+          "2025-12-31"
+        ],
+        "days": 365,
+        "no_fetch_days": [],
+        "bot_end": 1627.5999999999995,
+        "bot_return": 0.6275999999999995,
+        "benchmark_end": 1700.588274932816,
+        "benchmark_return": 0.7005882749328158,
+        "excess_return": -0.07298827493281634,
+        "bot_max_drawdown": -0.051051962145699514,
+        "benchmark_max_drawdown": -0.03539021688719313,
+        "open_positions_at_end": 10,
+        "open_positions_value_at_end": 1389.61,
+        "exit_reasons": {
+          "take_profit": 6,
+          "time_stop": 28,
+          "hard_stop": 2
+        },
+        "stale_position_days": 0,
+        "stale_benchmark_days": 0,
+        "rules": {
+          "B": {
+            "closed_trades": 36,
+            "win_rate": 0.7222222222222222,
+            "avg_return": 0.12658151257328903,
+            "median_return": 0.11059354553340683,
+            "avg_hold_days": 83.61111111111111,
+            "avg_return_vs_benchmark": -0.017531370821719697,
+            "realized_pnl": 644.4499999999999,
+            "open_at_end": 10,
+            "signals_fired": 15214,
+            "signals_distinct_cards": 348,
+            "bought": 46,
+            "skipped": {
+              "already_held": 827,
+              "insufficient_cash": 7311,
+              "max_per_set": 208,
+              "max_positions": 6757,
+              "over_position_limit": 57,
+              "sold_today": 8
+            }
+          },
+          "C": {
+            "closed_trades": 0,
+            "win_rate": null,
+            "avg_return": null,
+            "median_return": null,
+            "avg_hold_days": null,
+            "avg_return_vs_benchmark": null,
+            "realized_pnl": 0,
+            "open_at_end": 0,
+            "signals_fired": 1877,
+            "signals_distinct_cards": 679,
+            "bought": 0,
+            "skipped": {
+              "insufficient_cash": 708,
+              "max_per_set": 8,
+              "max_positions": 1151,
+              "over_position_limit": 10
+            }
+          }
+        }
+      },
+      "2026": {
+        "window": [
+          "2026-01-01",
+          "2026-11-20"
+        ],
+        "days": 324,
+        "no_fetch_days": [],
+        "bot_end": 1239.4399999999998,
+        "bot_return": 0.23943999999999988,
+        "benchmark_end": 1577.3038353032077,
+        "benchmark_return": 0.5773038353032078,
+        "excess_return": -0.33786383530320796,
+        "bot_max_drawdown": -0.05648321758793573,
+        "benchmark_max_drawdown": -0.029947342716554082,
+        "open_positions_at_end": 10,
+        "open_positions_value_at_end": 871.9599999999998,
+        "exit_reasons": {
+          "take_profit": 3,
+          "time_stop": 25,
+          "hard_stop": 1
+        },
+        "stale_position_days": 0,
+        "stale_benchmark_days": 39,
+        "rules": {
+          "B": {
+            "closed_trades": 27,
+            "win_rate": 0.48148148148148145,
+            "avg_return": 0.07022993960032954,
+            "median_return": -0.0039294244548886414,
+            "avg_hold_days": 88.14814814814815,
+            "avg_return_vs_benchmark": -0.08160410403219394,
+            "realized_pnl": 222.59,
+            "open_at_end": 7,
+            "signals_fired": 5529,
+            "signals_distinct_cards": 267,
+            "bought": 34,
+            "skipped": {
+              "already_held": 321,
+              "insufficient_cash": 2506,
+              "max_per_set": 41,
+              "max_positions": 2615,
+              "over_position_limit": 11,
+              "sold_today": 1
+            }
+          },
+          "C": {
+            "closed_trades": 2,
+            "win_rate": 0.0,
+            "avg_return": -0.222546113728468,
+            "median_return": -0.222546113728468,
+            "avg_hold_days": 68.5,
+            "avg_return_vs_benchmark": -0.28910936198760107,
+            "realized_pnl": -51.2,
+            "open_at_end": 3,
+            "signals_fired": 4149,
+            "signals_distinct_cards": 1434,
+            "bought": 5,
+            "skipped": {
+              "already_held": 11,
+              "insufficient_cash": 1043,
+              "max_positions": 3000,
+              "over_position_limit": 90
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -15,6 +15,7 @@ import sys
 import tempfile
 
 from scripts.restore_snapshot import DB_PATHS
+from sniper import engine
 from scripts.snapshot_storage import (
     GhReleaseSnapshotBackend,
     SnapshotError,
@@ -32,6 +33,11 @@ def main():
     args = parser.parse_args()
 
     db_paths = {**DB_PATHS, "prices.db": args.prices_db}
+    if not os.path.exists(db_paths["sniper.db"]):
+        # The live ledger starts empty: schema only, no account until the
+        # first daily trading step opens it with $1,000.
+        engine.init_ledger(db_paths["sniper.db"]).close()
+        print(f"Created empty live ledger at {db_paths['sniper.db']}")
     backend = GhReleaseSnapshotBackend()
 
     try:

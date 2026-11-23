@@ -11,7 +11,8 @@ data/backfill_report.json
 # Every downloaded TCGCSV archive is kept here and never re-downloaded.
 data/archive_cache/
 
-# Built static site (generated in CI)
-site/
+# Built static site (generated in CI); only its data file is committed daily.
+site/*
+!site/dashboard.json
 data/*.log
 data/backtest_report*

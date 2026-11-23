@@ -24,7 +24,8 @@ from scripts.snapshot_storage import (
 )
 from sniper import config
 
-DB_PATHS = {"prices.db": config.PRICES_DB_PATH}
+# prices.db holds prices; sniper.db is the live paper-trading ledger.
+DB_PATHS = {"prices.db": config.PRICES_DB_PATH, "sniper.db": config.SNIPER_DB_PATH}
 
 
 def backup_existing_databases():

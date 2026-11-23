@@ -20,6 +20,7 @@ from scripts.snapshot_storage import (
 
 
 from sniper import db as sniper_db
+from sniper import engine
 
 INSERT_PRICE = ("INSERT INTO printing_prices (date, product_id, printing, market_price) "
                 "VALUES (?, ?, ?, ?)")
@@ -33,11 +34,12 @@ def make_databases(dest_dir, price_rows=None):
         # Pad past MIN_EXPECTED_BYTES so the size guard is not what fails.
         conn.execute("CREATE TABLE padding (x BLOB)")
         conn.execute("INSERT INTO padding VALUES (?)", (os.urandom(4096),))
+    engine.init_ledger(os.path.join(dest_dir, "sniper.db")).close()
     return prices_path
 
 
 def paths(prices):
-    return {"prices.db": prices}
+    return {"prices.db": prices, "sniper.db": os.path.join(os.path.dirname(prices), "sniper.db")}
 
 
 class SnapshotStorageTests(unittest.TestCase):
@@ -216,13 +218,8 @@ class SnapshotStorageTests(unittest.TestCase):
         self.assertEqual(self.backend.get_pointer(), second["snapshot_id"])
 
     def test_failure_between_installing_two_databases_never_leaves_mixed_set(self):
-        # Milestone 4 adds sniper.db; the install must stay all-or-nothing.
-        other_db = os.path.join(self.root, "sniper.db")
-        with sqlite3.connect(other_db) as conn:
-            conn.execute("CREATE TABLE trades (x INTEGER)")
-            conn.execute("CREATE TABLE padding (x BLOB)")
-            conn.execute("INSERT INTO padding VALUES (?)", (os.urandom(4096),))
-        two = {"prices.db": self.prices_db, "sniper.db": other_db}
+        # prices.db and sniper.db install together or not at all.
+        two = paths(self.prices_db)
         create_and_publish_snapshot(self.backend, two, "commit-1")
 
         dest_dir = os.path.join(self.root, "installed")
@@ -256,7 +253,7 @@ class SnapshotStorageTests(unittest.TestCase):
     def test_snapshot_assets_are_gzip_compressed(self):
         manifest = create_and_publish_snapshot(self.backend, paths(self.prices_db), "abc")
         tag_dir = os.path.join(self.backend_root, manifest["snapshot_id"])
-        self.assertEqual(sorted(os.listdir(tag_dir)), ["manifest.json", "prices.db.gz"])
+        self.assertEqual(sorted(os.listdir(tag_dir)), ["manifest.json", "prices.db.gz", "sniper.db.gz"])
         info = manifest["files"]["prices.db"]
         self.assertLess(info["gz_size_bytes"], info["size_bytes"] * 2)
         self.assertEqual(info["gz_sha256"], compute_sha256(os.path.join(tag_dir, "prices.db.gz")))
@@ -269,7 +266,7 @@ class VerifyLocalSnapshotTests(unittest.TestCase):
         self.staging = os.path.join(self.tmp.name, "staging")
         os.makedirs(self.staging)
         self.prices_db = make_databases(self.tmp.name)
-        for name, src in (("prices.db", self.prices_db),):
+        for name, src in paths(self.prices_db).items():
             with open(src, "rb") as fsrc, open(os.path.join(self.staging, name), "wb") as fdst:
                 fdst.write(fsrc.read())
         manifest = build_manifest("data-test-1", "commit-x", self.staging)

@@ -226,6 +226,7 @@ def render_live(p):
     return f"""
 <header class="top">
   <h1>Pokémon Sniper</h1>
+  <p class="tagline">A bot trading Pokémon cards with $1,000 of pretend money on real daily prices, tracked against simply holding.</p>
   <p class="badge">Paper trading. Returns before fees.</p>
   <p class="status">{status}</p>
   <div class="stats">{header}</div>
@@ -307,9 +308,12 @@ h1{margin:0;font-size:1.6rem;letter-spacing:-.01em}
 h2{margin:0 0 6px;font-size:1.15rem}
 h3{margin:18px 0 6px;font-size:1rem}
 section,.top{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 14px}
-.badge{display:inline-block;margin:6px 0 0;padding:2px 10px;border-radius:999px;background:var(--accent);
+.tagline{margin:4px 0 0;font-size:1rem}
+.badge{display:inline-block;margin:8px 0 0;padding:2px 10px;border-radius:999px;background:var(--accent);
 color:#fff;font-size:.85rem;font-weight:600}
 .status,.hint{color:var(--muted);margin:6px 0 10px;font-size:.9rem}
+.tagline,.status,.hint,.health dd,footer{overflow-wrap:anywhere}
+main,section,.top,.scroll{min-width:0}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
 .stat{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .label{color:var(--muted);font-size:.8rem}
@@ -364,7 +368,7 @@ def render_html(payload):
 <main>
 {render_live(payload)}
 {render_backtest(payload["backtest"])}
-<footer>Built {esc(payload["built_at"])} · Prices from TCGCSV (TCGplayer market prices) · Paper trading, no real purchases</footer>
+<footer>Built {esc(payload["built_at"])} · Prices from TCGCSV (TCGplayer market prices) · Paper trading, no real purchases · <a href="{esc(config.REPO_URL)}">Source on GitHub</a></footer>
 </main>
 <script id="dashboard-data" type="application/json">{data}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>

@@ -43,6 +43,9 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(data["live"]["total"], 1000.0)
         self.assertIn("$1,000.00", page)
         self.assertIn("Paper trading. Returns before fees.", page)
+        self.assertIn("A bot trading Pokémon cards with $1,000 of pretend money on real daily "
+                      "prices, tracked against simply holding.", page)
+        self.assertIn('href="https://github.com/Burgos0/pokemon-sniper"', page)
         live_part, backtest_part = page.split("Backtest, not live results", 1)
         self.assertNotIn("+198.9%", live_part)
         self.assertIn("+198.9%", backtest_part)
