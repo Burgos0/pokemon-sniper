@@ -1,15 +1,15 @@
 {
-  "built_at": "2026-11-24 21:38 UTC",
+  "built_at": "2026-11-25 21:38 UTC",
   "starting_bankroll": 1000.0,
   "live": {
     "started": true,
     "start_date": "2026-11-23",
-    "last_date": "2026-11-24",
-    "days_live": 2,
-    "cash": 136.9600000000001,
-    "positions_value": 418.96000000000004,
-    "total": 555.9200000000001,
-    "benchmark_total": 905.4216688473196,
+    "last_date": "2026-11-25",
+    "days_live": 3,
+    "cash": 1.3600000000001025,
+    "positions_value": 479.48,
+    "total": 480.84000000000015,
+    "benchmark_total": 905.1794455772332,
     "equity": [
       [
         "2026-11-23",
@@ -20,6 +20,11 @@
         "2026-11-24",
         555.92,
         905.42
+      ],
+      [
+        "2026-11-25",
+        480.84,
+        905.18
       ]
     ],
     "open_positions": [
@@ -29,12 +34,12 @@
         "buy_date": "2026-11-23",
         "buy_price": 24.44,
         "last_price": 24.44,
-        "last_price_date": "2026-11-24",
+        "last_price_date": "2026-11-25",
         "rule": "C",
         "card": "Hitmonlee - HGSS25",
         "set_name": "HGSS Promos",
         "change": 0.0,
-        "days_held": 1,
+        "days_held": 2,
         "stale": false
       },
       {
@@ -43,12 +48,12 @@
         "buy_date": "2026-11-23",
         "buy_price": 28.99,
         "last_price": 25.29,
-        "last_price_date": "2026-11-24",
+        "last_price_date": "2026-11-25",
         "rule": "C",
         "card": "Holon's Magneton",
         "set_name": "EX Delta Species",
         "change": -0.12763021731631596,
-        "days_held": 1,
+        "days_held": 2,
         "stale": false
       },
       {
@@ -57,12 +62,12 @@
         "buy_date": "2026-11-23",
         "buy_price": 24.99,
         "last_price": 24.99,
-        "last_price_date": "2026-11-24",
+        "last_price_date": "2026-11-25",
         "rule": "C",
         "card": "Swirlix - 9/12",
         "set_name": "McDonald's Promos 2014",
         "change": 0.0,
-        "days_held": 1,
+        "days_held": 2,
         "stale": false
       },
       {
@@ -71,12 +76,12 @@
         "buy_date": "2026-11-23",
         "buy_price": 105.0,
         "last_price": 105.0,
-        "last_price_date": "2026-11-24",
+        "last_price_date": "2026-11-25",
         "rule": "C",
         "card": "Buzzwole - SM218 (Prerelease) [Staff]",
         "set_name": "SM Promos",
         "change": 0.0,
-        "days_held": 1,
+        "days_held": 2,
         "stale": false
       },
       {
@@ -85,12 +90,12 @@
         "buy_date": "2026-11-23",
         "buy_price": 47.45,
         "last_price": 42.11,
-        "last_price_date": "2026-11-24",
+        "last_price_date": "2026-11-25",
         "rule": "C",
         "card": "Xerneas EX - 2014 (Michikazu Tsuda)",
         "set_name": "World Championship Decks",
         "change": -0.11253951527924133,
-        "days_held": 1,
+        "days_held": 2,
         "stale": false
       },
       {
@@ -98,13 +103,13 @@
         "printing": "Holofoil",
         "buy_date": "2026-11-23",
         "buy_price": 43.06,
-        "last_price": 43.41,
-        "last_price_date": "2026-11-24",
+        "last_price": 43.57,
+        "last_price_date": "2026-11-25",
         "rule": "C",
         "card": "Mega Absol ex - 180/132",
         "set_name": "ME01: Mega Evolution",
-        "change": 0.008128193218764457,
-        "days_held": 1,
+        "change": 0.011843938690199618,
+        "days_held": 2,
         "stale": false
       },
       {
@@ -113,12 +118,12 @@
         "buy_date": "2026-11-24",
         "buy_price": 32.26,
         "last_price": 32.26,
-        "last_price_date": "2026-11-24",
+        "last_price_date": "2026-11-25",
         "rule": "C",
         "card": "Dark Ariados",
         "set_name": "Neo Destiny",
         "change": 0.0,
-        "days_held": 0,
+        "days_held": 1,
         "stale": false
       },
       {
@@ -126,45 +131,73 @@
         "printing": "Holofoil",
         "buy_date": "2026-11-24",
         "buy_price": 28.2,
-        "last_price": 28.2,
-        "last_price_date": "2026-11-24",
+        "last_price": 28.77,
+        "last_price_date": "2026-11-25",
         "rule": "C",
         "card": "Kabutops",
         "set_name": "EX Power Keepers",
+        "change": 0.02021276595744692,
+        "days_held": 1,
+        "stale": false
+      },
+      {
+        "product_id": 44420,
+        "printing": "Unlimited Holofoil",
+        "buy_date": "2026-11-25",
+        "buy_price": 26.62,
+        "last_price": 26.62,
+        "last_price_date": "2026-11-25",
+        "rule": "C",
+        "card": "Magneton (11)",
+        "set_name": "Fossil",
         "change": 0.0,
         "days_held": 0,
         "stale": false
       },
       {
-        "product_id": 227095,
-        "printing": "Holofoil",
-        "buy_date": "2026-11-24",
-        "buy_price": 100.0,
-        "last_price": 57.39,
-        "last_price_date": "2026-11-24",
+        "product_id": 84839,
+        "printing": "Reverse Holofoil",
+        "buy_date": "2026-11-25",
+        "buy_price": 190.09,
+        "last_price": 126.43,
+        "last_price_date": "2026-11-25",
         "rule": "C",
-        "card": "Metagross - 4/95 (Cracked Ice Holo)",
-        "set_name": "Deck Exclusives",
-        "change": -0.42610000000000003,
-        "days_held": 0,
-        "stale": false
-      },
-      {
-        "product_id": 476080,
-        "printing": "Holofoil",
-        "buy_date": "2026-11-24",
-        "buy_price": 50.0,
-        "last_price": 35.87,
-        "last_price_date": "2026-11-24",
-        "rule": "C",
-        "card": "Togekiss V - 140/185",
-        "set_name": "Prize Pack Series Cards",
-        "change": -0.2826000000000001,
+        "card": "Ditto (Geodude)",
+        "set_name": "EX Delta Species",
+        "change": -0.33489399758009364,
         "days_held": 0,
         "stale": false
       }
     ],
     "closed_trades": [
+      {
+        "product_id": 476080,
+        "printing": "Holofoil",
+        "card": "Togekiss V - 140/185",
+        "set_name": "Prize Pack Series Cards",
+        "buy_date": "2026-11-24",
+        "buy_price": 50.0,
+        "sell_date": "2026-11-25",
+        "sell_price": 35.87,
+        "return_pct": -0.2826000000000001,
+        "hold_days": 1,
+        "rule": "C",
+        "reason": "hard_stop: -28.3% <= -20%"
+      },
+      {
+        "product_id": 227095,
+        "printing": "Holofoil",
+        "card": "Metagross - 4/95 (Cracked Ice Holo)",
+        "set_name": "Deck Exclusives",
+        "buy_date": "2026-11-24",
+        "buy_price": 100.0,
+        "sell_date": "2026-11-25",
+        "sell_price": 45.24,
+        "return_pct": -0.5476,
+        "hold_days": 1,
+        "rule": "C",
+        "reason": "hard_stop: -54.8% <= -20%"
+      },
       {
         "product_id": 481978,
         "printing": "Normal",
@@ -224,70 +257,48 @@
     ],
     "signals": [
       {
-        "product_id": 227095,
-        "printing": "Holofoil",
-        "rule": "C",
-        "price": 100.0,
-        "bought": 1,
-        "skip_reason": null,
-        "detail": "flat 14 days near 45.24 (-21.2% vs 60-day high 57.39); +26.9% over 3 days",
-        "card": "Metagross - 4/95 (Cracked Ice Holo)",
-        "set_name": "Deck Exclusives"
-      },
-      {
-        "product_id": 476080,
-        "printing": "Holofoil",
-        "rule": "C",
-        "price": 50.0,
-        "bought": 1,
-        "skip_reason": null,
-        "detail": "flat 14 days near 28.52 (-20.5% vs 60-day high 35.87); +25.8% over 3 days",
-        "card": "Togekiss V - 140/185",
-        "set_name": "Prize Pack Series Cards"
-      },
-      {
-        "product_id": 84566,
-        "printing": "1st Edition",
-        "rule": "C",
-        "price": 32.26,
-        "bought": 1,
-        "skip_reason": null,
-        "detail": "flat 14 days near 16.78 (-48.0% vs 60-day high 32.26); +92.3% over 3 days",
-        "card": "Dark Ariados",
-        "set_name": "Neo Destiny"
-      },
-      {
-        "product_id": 86398,
-        "printing": "Holofoil",
-        "rule": "C",
-        "price": 28.2,
-        "bought": 1,
-        "skip_reason": null,
-        "detail": "flat 14 days near 22.23 (-21.2% vs 60-day high 28.20); +26.9% over 3 days",
-        "card": "Kabutops",
-        "set_name": "EX Power Keepers"
-      },
-      {
-        "product_id": 85357,
+        "product_id": 84839,
         "printing": "Reverse Holofoil",
         "rule": "C",
-        "price": 199.99,
+        "price": 190.09,
+        "bought": 1,
+        "skip_reason": null,
+        "detail": "flat 14 days near 117.33 (-34.7% vs 60-day high 179.75); +7.8% over 3 days",
+        "card": "Ditto (Geodude)",
+        "set_name": "EX Delta Species"
+      },
+      {
+        "product_id": 44420,
+        "printing": "Unlimited Holofoil",
+        "rule": "C",
+        "price": 26.62,
+        "bought": 1,
+        "skip_reason": null,
+        "detail": "flat 14 days near 21.00 (-21.1% vs 60-day high 26.62); +26.3% over 3 days",
+        "card": "Magneton (11)",
+        "set_name": "Fossil"
+      },
+      {
+        "product_id": 87855,
+        "printing": "Reverse Holofoil",
+        "rule": "C",
+        "price": 499.98,
         "bought": 0,
-        "skip_reason": "sold_today",
-        "detail": "flat 14 days near 82.09 (-29.0% vs 60-day high 115.67); +6.9% over 3 days",
-        "card": "Exeggutor",
+        "skip_reason": "over_position_limit",
+        "detail": "flat 14 days near 88.90 (-21.9% vs 60-day high 113.90); +28.1% over 3 days",
+        "card": "Omanyte",
         "set_name": "Legendary Collection"
       },
       {
-        "product_id": 96370,
-        "printing": "Holofoil",
+        "product_id": 477455,
+        "printing": "Normal",
         "rule": "C",
-        "price": 199.99,
+        "price": 225.0,
         "bought": 0,
-        "skip_reason": "sold_today",
-        "detail": "flat 14 days near 59.98 (-26.7% vs 60-day high 81.85); +8.3% over 3 days",
-        "card": "Dragalge - XY10 (Prerelease) [Staff]",
-        "set_name": "XY Promos"
+        "skip_reason": "over_position_limit",
+        "detail": "flat 14 days near 43.60 (-35.9% vs 60-day high 68.00); +13.5% over 3 days",
+        "card": "Town Volunteers - 2004 (Kevin Nguyen)",
+        "set_name": "World Championship Decks"
       },
       {
         "product_id": 88501,
@@ -295,32 +306,43 @@
         "rule": "C",
         "price": 178.69,
         "bought": 0,
-        "skip_reason": "sold_today",
+        "skip_reason": "insufficient_cash",
         "detail": "flat 14 days near 50.93 (-74.5% vs 60-day high 199.99); +73.8% over 3 days",
         "card": "Raichu (25)",
         "set_name": "Expedition"
       },
       {
-        "product_id": 481978,
-        "printing": "Normal",
-        "rule": "C",
-        "price": 125.94,
-        "bought": 0,
-        "skip_reason": "sold_today",
-        "detail": "flat 14 days near 13.39 (-58.4% vs 60-day high 32.16); +140.0% over 3 days",
-        "card": "Jirachi - 2018 (Magnus Pedersen)",
-        "set_name": "World Championship Decks"
-      },
-      {
-        "product_id": 201941,
+        "product_id": 87121,
         "printing": "Holofoil",
         "rule": "C",
-        "price": 105.0,
+        "price": 103.21,
         "bought": 0,
-        "skip_reason": "already_held",
-        "detail": "flat 14 days near 73.50 (-30.0% vs 60-day high 105.00); +42.9% over 3 days",
-        "card": "Buzzwole - SM218 (Prerelease) [Staff]",
-        "set_name": "SM Promos"
+        "skip_reason": "insufficient_cash",
+        "detail": "flat 14 days near 70.00 (-32.2% vs 60-day high 103.21); +47.4% over 3 days",
+        "card": "Magnezone LV.X",
+        "set_name": "Legends Awakened"
+      },
+      {
+        "product_id": 85737,
+        "printing": "Holofoil",
+        "rule": "C",
+        "price": 64.95,
+        "bought": 0,
+        "skip_reason": "insufficient_cash",
+        "detail": "flat 14 days near 49.33 (-24.0% vs 60-day high 64.95); +28.9% over 3 days",
+        "card": "Giratina (9)",
+        "set_name": "Platinum"
+      },
+      {
+        "product_id": 476080,
+        "printing": "Holofoil",
+        "rule": "C",
+        "price": 50.0,
+        "bought": 0,
+        "skip_reason": "sold_today",
+        "detail": "flat 14 days near 28.52 (-20.5% vs 60-day high 35.87); +25.8% over 3 days",
+        "card": "Togekiss V - 140/185",
+        "set_name": "Prize Pack Series Cards"
       },
       {
         "product_id": 481020,
@@ -332,6 +354,17 @@
         "detail": "flat 14 days near 35.44 (-25.3% vs 60-day high 47.45); +18.8% over 3 days",
         "card": "Xerneas EX - 2014 (Michikazu Tsuda)",
         "set_name": "World Championship Decks"
+      },
+      {
+        "product_id": 84566,
+        "printing": "1st Edition",
+        "rule": "C",
+        "price": 32.26,
+        "bought": 0,
+        "skip_reason": "already_held",
+        "detail": "flat 14 days near 16.78 (-48.0% vs 60-day high 32.26); +92.3% over 3 days",
+        "card": "Dark Ariados",
+        "set_name": "Neo Destiny"
       },
       {
         "product_id": 86157,
@@ -367,6 +400,17 @@
         "set_name": "McDonald's Promos 2014"
       },
       {
+        "product_id": 177126,
+        "printing": "Normal",
+        "rule": "C",
+        "price": 24.0,
+        "bought": 0,
+        "skip_reason": "max_positions",
+        "detail": "flat 14 days near 5.46 (-73.2% vs 60-day high 20.35); +272.7% over 3 days",
+        "card": "Dugtrio - 5/100 (EX Crystal Guardians)",
+        "set_name": "Deck Exclusives"
+      },
+      {
         "product_id": 481848,
         "printing": "Normal",
         "rule": "C",
@@ -376,17 +420,6 @@
         "detail": "flat 14 days near 18.77 (-20.6% vs 60-day high 23.65); +26.0% over 3 days",
         "card": "Diancie - 2017 (Diego Cassiraga)",
         "set_name": "World Championship Decks"
-      },
-      {
-        "product_id": 86095,
-        "printing": "Reverse Holofoil",
-        "rule": "C",
-        "price": 23.28,
-        "bought": 0,
-        "skip_reason": "max_positions",
-        "detail": "flat 14 days near 17.18 (-26.2% vs 60-day high 23.28); +35.5% over 3 days",
-        "card": "Hitmonchan",
-        "set_name": "Undaunted"
       }
     ],
     "scoreboard": [
@@ -399,21 +432,21 @@
       },
       {
         "rule": "C",
-        "trades": 4,
+        "trades": 6,
         "open": 10,
         "win_rate": 0.0,
-        "avg_return": -0.5698013727609017
+        "avg_return": -0.5182342485072678
       }
     ]
   },
   "health": {
-    "last_fetch_date": "2026-11-24",
+    "last_fetch_date": "2026-11-25",
     "source": "live",
-    "rows_fetched": 45812,
-    "rows_stored": 15013,
+    "rows_fetched": 45823,
+    "rows_stored": 15029,
     "sets": 222,
     "failed_sets": [],
-    "fetched_at": "2026-11-24T21:37:20Z",
+    "fetched_at": "2026-11-25T21:37:04Z",
     "recent_problems": []
   },
   "backtest": {
